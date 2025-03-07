@@ -8,6 +8,9 @@ class Provider(models.Model):
     address = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    document = models.CharField(max_length=255, unique=True, null=True)
+    phone = models.CharField(max_length=255, unique=True, null=True)
+    rif = models.CharField(max_length=255, unique=True, null=True)
 
     def __str__(self):
         return self.name
@@ -26,6 +29,8 @@ class Order(models.Model):
     total_cost = models.FloatField(null=True, blank=True)
     product = models.ForeignKey("inventory.Product", on_delete=models.CASCADE, null=True, blank=True)
     quantity = models.PositiveIntegerField()
+    real_quantity = models.PositiveIntegerField(null=True, blank=True)
+    price_unit = models.FloatField(null=True, blank=True)
     
     def __str__(self):
         return f"Orden {self.id} - {self.provider.name}"

@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { purchasesContext } from "./context";
 import PropTypes from 'prop-types'
 import { api } from "../utils/api";
 import { toast } from "react-toastify";
+import { useInventoryContext } from "../hooks/useInventoryContext";
 
 const PurchasesProvider = ({ children }) => {
     const [purchasesModalType, setPurchasesModalType] = useState(null)
     const [providers, setProviders] = useState([])
     const [provider, setProvider] = useState(null)
+    const [providerProducts, setProviderProducts] = useState([])
     const [orders, setOrders] = useState([])
+    const {  getProducts, } = useInventoryContext();
+    const formRef = useRef();
+    
     const createProvider = (provider) => {
         api.post('/purchase/providers/', provider).then(res => {
             if(res.status === 201){
@@ -92,6 +97,68 @@ const PurchasesProvider = ({ children }) => {
         }
     }
 
+    const createPurchase = async (formValues) => {
+        console.log("FORM VALUES", {
+            ...formValues})
+        let res;
+        try{
+          res = await api.post("/purchase/orders/create-order/", {
+            ...formValues,
+            product: formValues.product?.id,
+            provider: formValues.provider?.id ?? formValues.provider,
+          });
+        }catch(e){
+          res = e.response
+        }
+        
+        if (res.status === 201) {
+          toast.success("Compra creada exitosamente");
+          setPurchasesModalType(null);
+          getOrders();
+          getProducts()
+    
+        }
+        else{
+          toast.error("Error al crear la compra");
+        }
+      }
+    
+      const updateOrderStatus = async (orderId, status, real_quantity) => {
+        try {
+          const res = await api.post(`/purchase/orders/order-status/`, {
+            order_id: orderId,
+            status,
+            real_quantity: real_quantity
+          })
+          if(res.status === 200){
+            toast.success("Estado de la orden actualizado con éxito")
+            getOrders()
+          }
+          else{
+            toast.error("Hubo un error al actualizar el estado de la orden")
+          }
+        } catch (error) {
+          console.log(error)
+          toast.error("Hubo un error al actualizar el estado de la orden")
+        }
+      }
+
+    const getProvidersProducts = async (providerId) => {
+        try {
+            const res = await api.get(`/purchase/providers/providers-products/?provider_id=${providerId}`)
+            if(res.status === 200){
+                setProviderProducts(res.data)
+                return res.data
+            }
+            else{
+                toast.error("Hubo un error al obtener los productos del proveedor")
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error("Hubo un error al obtener los productos del proveedor")
+        }
+    }
+
     const values = {
         purchasesModalType,
         providers,
@@ -103,7 +170,13 @@ const PurchasesProvider = ({ children }) => {
         editProvider,
         setProvider,
         getOrders,
-        orders
+        createPurchase,
+        orders,
+        updateOrderStatus,
+        formRef,
+        getProvidersProducts,
+        providerProducts,
+        setProviderProducts
     }
     return (
     <purchasesContext.Provider value={values}>{children}</purchasesContext.Provider>

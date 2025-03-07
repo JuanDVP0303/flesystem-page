@@ -16,15 +16,15 @@ class Product(models.Model):
     name = models.CharField(max_length=100)
     sell_price = models.FloatField(null=True, blank=True)
     sku = models.CharField(max_length=100, null=True, blank=True)
+    provider = models.ForeignKey("purchase.Provider", on_delete=models.CASCADE, null=True, blank=True)
+    min_stock = models.FloatField(null=True, blank=True)
+    max_stock = models.FloatField(null=True, blank=True)
     category = models.CharField(max_length=100, null=True, blank=True)
     unit_of_measure = models.CharField(max_length=20, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
-    expiration= models.DateField(null=True, blank=True)
-    location = models.CharField(max_length=100, null=True, blank=True)
-    waste = models.FloatField(null=True, blank=True)
-    safety_stock = models.FloatField(null=True, blank=True)
     date = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+    product_image = models.ImageField(upload_to="products", null=True, blank=True)
     def __str__(self):
         return f"{self.name}"
 
@@ -57,7 +57,6 @@ class Movement(models.Model):
     
 class ProductBatch(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    product_variant = models.ForeignKey(ProductVariants, on_delete=models.CASCADE, null=True, blank=True)
     quantity = models.FloatField(null=True, blank=True)
     price_unit = models.FloatField(null=True, blank=True)
     sell_price = models.FloatField(null=True, blank=True)

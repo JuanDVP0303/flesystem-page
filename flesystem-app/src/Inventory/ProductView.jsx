@@ -85,26 +85,30 @@ const ProductView = () => {
     <Box className="p-5">
       <GoBackInventoryButton office={office} />
       <MiniCard>
-        {product ? (
-          <Box className="flex p-4">
+        {product ? (<>
+          <Box className="flex flex-col md:flex-row p-4">
             <div className="flex-1">
               <h2 className="text-2xl p-6 pl-0">{product?.name || "Cargando"}</h2>
               <div className="flex flex-col gap-4">
                 <KeyValue
                   label="Cantidad en inventario"
-                  value={`${product?.quantity} ${getProductQuantityByUnit(product, false, true)}`}
+                  value={`${product?.quantity ?? 0} ${getProductQuantityByUnit(product, false, true)}`}
                 />
                 <KeyValue
                   label="Valor en inventario"
                   value={`${formatNumber(
                     product?.quantity * product?.price_unit
-                  )} ${("BS.")?.toUpperCase()}.`}
+                  )} ${("BS")?.toUpperCase()}.`}
                 />
                 <KeyValue label="Categoría" value={`${product?.category}`} />
               </div>
             </div>
-            <div className="flex-1 flex flex-col justify-between">
+            <div className="flex-1 flex flex-col gap-4">
+            <h2 className="text-2xl p-6 pl-0"></h2>
+
               <KeyValue label="Descripción" value={`${product?.description ? product?.description : "Sin descripción"}`} />
+              <KeyValue label="Stock Mínimo" value={`${product?.min_stock ? product?.min_stock : "Sin descripción"}`} />
+              <KeyValue label="Stock Máximo" value={`${product?.max_stock ? product?.max_stock : "Sin descripción"}`} />
               <div className="flex">
                 <div className="flex-1"></div>
               {!authenticatedUser.is_superuser &&<Button
@@ -136,6 +140,9 @@ const ProductView = () => {
             }
             </div>
           </Box>
+            <div className="flex-1 flex flex-col gap-4 m-4">
+                  <img src={import.meta.env.VITE_API_URL + "/"+ product?.product_image} alt={product?.name} className="w-64 h-64 object-cover border" />
+            </div></>
         ): <h1>Cargando...</h1>}
       </MiniCard>
         <EditModalForm handleSubmit={handleSubmitEdit} handleProductChange={handleProductChange} product={product} editProduct={editProduct} setEditProduct={setEditProduct} productEdited={productEdited}  setProductEdited={setProductEdited}/>
@@ -258,6 +265,8 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           label="Cantidad"
           placeholder="Ex:. 20..."
         />
+      </GridField>
+      <GridField>
         <FieldGroup
           onChange={handleProductChange}
           disabled={true}
@@ -266,9 +275,8 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           name="name"
           placeholder="Ex:. 100"
         />
-      </GridField>
-      <GridField>
-        <FieldGroup
+        </GridField>
+       {/* <FieldGroup
           onChange={handleProductChange}
           value={productEdited?.price_unit}
           label="Costo unitario."
@@ -286,18 +294,18 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           optional={true}
           placeholder="Ex:. Vestimenta..."
         />
-      </GridField>
+      </GridField> */}
       <GridField>
-      <FieldGroup
+      {/* <FieldGroup
           onChange={handleProductChange}
           value={productEdited?.location}
           label={`Ubicación`}
           optional={true}
           name="location"
           placeholder="Ex:. Almacén A"
-        />
+        /> */}
       </GridField>
-      <GridField>
+      {/* <GridField>
       <ExpirationField 
         handleExpirationToggle={handleExpirationToggle}
         checked={productEdited?.expirationEnabled}
@@ -307,7 +315,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
         disabled={!productEdited?.expirationEnabled}
         dateFieldName={"expiration_date"}
       />
-      </GridField>
+      </GridField> */}
     </Grid>
     <div className="flex justify-center p-5">
     <SaveButton label="Guardar Cambios" />

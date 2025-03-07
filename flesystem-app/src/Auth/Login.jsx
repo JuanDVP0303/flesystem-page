@@ -31,7 +31,7 @@ function LoginBrain(){
           goTo('/')
         }
         if(data.account.is_superuser){
-          goTo('/inventory')
+          goTo('/dashboard')
         }
         toast.success('Sesión iniciada correctamente')
       }
@@ -61,8 +61,8 @@ function Login({formRef, loginUser}) {
           e.preventDefault()
           loginUser()}} className='authSubContainer flex-1'>
         <h2 className='title'>Inicia sesión</h2>
-        <TextField fullWidth label="E-mail" name="email" variant="outlined" />
-        <TextField fullWidth label="Contraseña" name="password" type='password' variant="outlined" />
+        <TextField fullWidth label="E-mail" name="email" required variant="outlined" />
+        <TextField fullWidth label="Contraseña" name="password" required type='password' variant="outlined" />
         <SaveButton variant="contained" color="primary" type='submit' label={"Inicia sesión"}/>
         <Link to="/register" className='font-light'>
           ¿No tienes una cuenta? Registrate

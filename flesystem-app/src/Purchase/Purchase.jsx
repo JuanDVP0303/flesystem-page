@@ -2,9 +2,15 @@ import {
   Autocomplete,
   Box,
   Button,
+  Card,
+  Dialog,
+  FormControl,
   FormLabel,
   Grid,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
 } from "@mui/material";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -21,6 +27,7 @@ import { FieldGroup, GridField } from "../Inventory/Inventory";
 import { useInventoryContext } from "../hooks/useInventoryContext";
 import { api } from "../utils/api";
 import { toast } from "react-toastify";
+import ProductTable from "../Inventory/components/ProductTable";
 
 const Purchase = () => {
   const { authenticatedUser } = useGlobalContext();
@@ -60,8 +67,6 @@ const Purchase = () => {
           <Box sx={{ display: "flex", gap: 2 }}></Box>
         </Box>
       </MiniCard>
-
-      {!authenticatedUser.is_superuser && (
         <MiniCard>
           <div className="flex flex-col md:flex-row justify-center gap-5">
             <GenericButton
@@ -76,7 +81,7 @@ const Purchase = () => {
                 </>
               }
             />
-            <GenericButton
+            {/* <GenericButton
               onClick={() => {
                 setPurchasesModalType("purchase");
               }}
@@ -86,16 +91,34 @@ const Purchase = () => {
                   <StoreIcon />
                 </>
               }
-            />
+            /> */}
           </div>
         </MiniCard>
-      )}
       <MiniCard>
         <Box className="flex flex-col md:flex-row justify-center gap-5">
         <TableGenerator
-              labels={["Número de factura", "Producto", "Proveedor", "Costo Total"]}
-              data={orders || []}
-              rowFields={["invoice_number", "product_name", "provider_name", "total_cost"]}
+              labels={["Producto", "Cantidad", "Proveedor", "Costo Total", "Fecha", "Acción", "Status"]}
+              data={orders.map(order => {
+                return {
+                  ...order,
+                  status: (
+                    <Box className={`${
+                      order.status === "COMPLETED" ? "bg-green-500" :
+                      order.status === "PENDING" ?  "bg-yellow-500":
+                      "bg-red-500"
+                    } w-3 h-3 rounded-full`}></Box>                  
+                  ),
+                  action: (
+                    <IconButton
+                      onClick={() => {
+                        setPurchasesModalType(order);
+                      }}
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
+                  )
+                }}) || []}
+              rowFields={["product_name", "quantity", "provider_name", "total_cost", "purchase_date", "action", "status"]}
             />
         </Box>
       </MiniCard>
@@ -109,7 +132,7 @@ const PurchaseModal = () => {
     <ModalComponent
       fullScreen={true}
       title={`${
-        purchasesModalType === "providers" ? "Proveedores" : "Generar compra"
+        purchasesModalType === "providers" ? "Proveedores" : "Compra"
       }`}
       open={Boolean(purchasesModalType)}
       setOpen={setPurchasesModalType}
@@ -136,31 +159,11 @@ const PurchaseSection = () => {
   });
   const [providers, setProviders] = useState([]);
   const [provider, setProvider] = useState([]);
-  const { searchProductDebounce } = useInventoryContext();
-  const { setPurchasesModalType, getOrders } = usePurchaseContext();
+  const { searchProductDebounce,  setSearchedProducts,  } = useInventoryContext();
+  const {  createPurchase, purchasesModalType, setPurchasesModalType, updateOrderStatus } = usePurchaseContext();
+  const [order, setOrder] = useState(null)
   const formRef = useRef();
-
-  const createPurchase = async () => {
-    let res;
-    try{
-      res = await api.post("/purchase/orders/create-order/", {
-        ...formValues,
-        product: formValues.product?.id,
-        provider: provider?.id,
-      });
-    }catch(e){
-      res = e.response
-    }
-    
-    if (res.status === 201) {
-      toast.success("Compra creada exitosamente");
-      setPurchasesModalType(null);
-      getOrders();
-    }
-    else{
-      toast.error("Error al crear la compra");
-    }
-  }
+  const {searchedProducts, } = useInventoryContext()
 
   const searchProviders = async (search) => {
     if (search.length > 0) {
@@ -198,7 +201,30 @@ const PurchaseSection = () => {
         total_cost: formValues.quantity * formValues.price_unit
       }
     })
+
+    return () => {
+      setSearchedProducts([])
+      
+    }
   }, [formValues.quantity, formValues.price_unit]);	
+
+  useEffect(() => {
+    if(typeof purchasesModalType === "object"){
+      setOrder(purchasesModalType)
+      console.log("ORDER", purchasesModalType)
+      setFormValues({
+        ...formValues,
+        provider: purchasesModalType.provider,
+        product: purchasesModalType.product,
+        quantity: purchasesModalType.quantity,
+        price_unit: purchasesModalType.price_unit,
+        total_cost: purchasesModalType.total_cost,
+        purchase_date: purchasesModalType.purchase_date,
+        invoice_number: purchasesModalType.invoice_number,
+        real_quantity: purchasesModalType.real_quantity
+      })
+    }
+  } , [purchasesModalType])
 
   return (
     <Box className="p-5">
@@ -210,11 +236,22 @@ const PurchaseSection = () => {
         }}
       >
         <Box sx={{ width: "100%" }}>
-          <Grid container spacing={4}>
-            <GridField>
+        <Box className={`${
+                      purchasesModalType?.status === "COMPLETED" ? "bg-green-500" :
+                      purchasesModalType?.status === "PENDING" ?  "bg-yellow-500":
+                      "bg-red-500"
+                    } w-auto p-1 text-center text-white rounded-full`}>
+                        {
+                          purchasesModalType?.status === "COMPLETED" ? "Completado" :
+                          purchasesModalType?.status === "PENDING" ?  "Pendiente":
+                          "Denegado"
+                        }
+                      </Box> 
               <div className="flex flex-col flex-1">
                 <FormLabel>Proveedor</FormLabel>
                 <Autocomplete
+                disabled={typeof purchasesModalType === "object"}
+
                   freeSolo={providers?.length === 0}
                   onChange={(e, value) => {
                     handleChange({
@@ -235,7 +272,7 @@ const PurchaseSection = () => {
                   variant="outlined"
                   size="medium"
                   // disabled={false}
-                  value={formValues.provider || null}
+                  value={formValues?.provider?.name || null}
                   name={"provider"}
                   options={providers}
                   renderInput={(params) => (
@@ -259,34 +296,43 @@ const PurchaseSection = () => {
                   )}
                 />
               </div>
+              {console.log([formValues?.product])}
+          <Grid container spacing={4}>
+            <GridField>
+              <FieldGroup
+                onChange={handleChange}
+                value={formValues?.product?.id}
+                name="product"
+                required={true}
+                options={typeof purchasesModalType == "object" && formValues?.product ? [formValues?.product] : searchedProducts}
+                searchFunction={(e) => searchProductDebounce(e, formValues?.provider?.id)}
+                label="Producto"
+                disabled={typeof purchasesModalType === "object"}
+
+                placeholder="Buscar producto"
+                disableShowProduct={false}
+              />
               <FieldGroup
                 onChange={handleChange}
                 value={formValues.purchase_date}
                 name="purchase_date"
+                defaultValue={new Date().toISOString().split("T")[0]}
                 required={true}
                 label="Fecha de compra"
+                disabled={typeof purchasesModalType === "object"}
+
                 type="date"
               />
-              <FieldGroup
+              {/* <FieldGroup
                 onChange={handleChange}
                 value={formValues.invoice_number}
                 name="invoice_number"
                 optional={true}
                 label="Número de factura"
                 placeholder="Ex:. 001-123456"
-              />
+              /> */}
             </GridField>
             <GridField>
-              <FieldGroup
-                onChange={handleChange}
-                value={formValues.product}
-                name="product"
-                required={true}
-                searchFunction={searchProductDebounce}
-                label="Producto"
-                placeholder="Buscar producto"
-                disableShowProduct={false}
-              />
               <FieldGroup
                 onChange={handleChange}
                 value={formValues.quantity}
@@ -294,19 +340,34 @@ const PurchaseSection = () => {
                 required={true}
                 label="Cantidad"
                 numeric={true}
+                disabled={typeof purchasesModalType === "object"}
+
                 placeholder="Ex:. 100"
               />
               <FieldGroup
                 onChange={handleChange}
-                value={formValues.unit_cost}
+                value={formValues.price_unit}
                 name="price_unit"
                 required={true}
                 label="Costo unitario"
                 numeric={true}
+                disabled={typeof purchasesModalType === "object"}
                 placeholder="Ex:. 50.00"
               />
             </GridField>
-            <div className="px-8 pt-5">
+          </Grid>
+     {typeof purchasesModalType == "object" && <FieldGroup
+                onChange={handleChange}
+                value={formValues.real_quantity}
+                name="real_quantity"
+                required={true}
+                label="Cantidad real"
+                disabled={purchasesModalType.status != "PENDING"}
+                numeric={true}
+                placeholder="Ex:. 50.00"
+              />}
+  
+            {/* <div className="px-8 pt-5">
               <FieldGroup
                 onChange={handleChange}
                 value={formValues.total_cost}
@@ -315,13 +376,12 @@ const PurchaseSection = () => {
                 label="Costo total"
                 placeholder="Calculado automáticamente"
               />
-            </div>
-          </Grid>
+            </div> */}
           <Box mt={4}>
-            <Grid container spacing={2}>
+    {!typeof purchasesModalType === "object" && (<Grid container spacing={2}>
               <Grid item xs={12}>
                 <Button type="submit" variant="outlined" color="primary">
-                  Agregar producto
+                  Generar Compra
                 </Button>
               </Grid>
               {/* <Grid item xs={12}>
@@ -330,7 +390,28 @@ const PurchaseSection = () => {
           onRemove={handleRemoveProduct}
         />
       </Grid> */}
-            </Grid>
+            </Grid>) 
+            }
+
+            {typeof purchasesModalType === "object" && purchasesModalType?.status == "PENDING" && (
+                  <>
+                  <Button type="submit" variant="outlined" color="primary" onClick={() => {
+                    updateOrderStatus(order.id, "COMPLETED", formValues.real_quantity)
+                    setPurchasesModalType(null)
+
+                  }}>
+                    Aceptar compra
+                  </Button>
+                  <Button variant="outlined" color="error" onClick={() => {
+                    updateOrderStatus(order.id, "CANCELLED")
+                    setPurchasesModalType(null)
+                    
+                    }}>
+                    Denegar
+                  </Button>
+                  </>
+            )}
+            
           </Box>
         </Box>
       </form>
@@ -342,7 +423,7 @@ const ProviderSection = () => {
   //options: str: view | str: add | int: idOfProvider
   const [state, setState] = useState("view");
   const [providersToShow, setProvidersToShow] = useState(null);
-  const { providers } = usePurchaseContext();
+  const { providers, formRef,setProvider } = usePurchaseContext();
   useEffect(() => {
     setProvidersToShow(
       providers.map((provider) => {
@@ -383,7 +464,10 @@ const ProviderSection = () => {
             outlined={state == "add"}
             label="Agregar proveedor"
             onClick={() => {
+              //Resetear formREf
+              formRef.current && formRef.current.reset();
               setState("add");
+              setProvider(null);
             }}
           />
         </Box>
@@ -405,13 +489,17 @@ const ProviderSection = () => {
     </Box>
   );
 };
-
 const ProvidersView = ({ state }) => {
-  const { createProvider, getProvider, editProvider, provider, setProvider } =
+  const { createProvider, getProvider, editProvider, provider, setProvider,formRef, providerProducts, setProviderProducts, getProvidersProducts } =
     usePurchaseContext();
 
-    useEffect(() => {return () => setProvider(null)}, [])
-  const formRef = useRef();
+    const [showProvidersProduct, setShowProvidersProduct] = useState(false)
+
+  useEffect(() => {
+    return () => setProvider(null);
+  }, []);
+
+
   const onSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(formRef.current);
@@ -422,6 +510,9 @@ const ProvidersView = ({ state }) => {
     if (provider) {
       providerData.id = state;
     }
+    providerData["document"] = `${providerData["type_of_document"]}-${providerData["document"]}`;
+    // console.log("PROVIDER DATA", providerData);
+    
     if (state == "add") {
       createProvider(providerData);
     } else {
@@ -439,17 +530,65 @@ const ProvidersView = ({ state }) => {
     });
   };
 
+  const handleExportCompletedOrders = async () => {
+    try {
+        const response = await api.get(`/purchase/providers/${provider.id}/export-completed-orders/`, { responseType: "blob" });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `compras_completadas_proveedor_${provider.id}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+    } catch (error) {
+        console.error("Error al exportar las compras completadas:", error);
+    }
+};
   useEffect(() => {
-    //Verificar si state es un numero
+    // Verificar si state es un número
     if (!isNaN(state)) {
       // Buscar el proveedor con ese id
       getProvider(state);
     }
   }, [state]);
 
+  useEffect(() => {
+    if(showProvidersProduct && provider){
+      getProvidersProducts(provider?.id)
+    }
+    else{
+      setProviderProducts([])
+    }
+  }, [showProvidersProduct])
+  console.log(providerProducts)
   return (
     <Box>
       <MiniCard>
+        <Box>
+          <ModalComponent
+            title={`Productos de ${provider?.name}`}
+            open={showProvidersProduct}
+            setOpen={setShowProvidersProduct}
+            fullWidth
+          >
+            
+            <Card sx={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              padding: 2,
+            }}>
+          <Box>
+            <ProductTable products={providerProducts?.length > 0 ? providerProducts : []} />
+          </Box>
+          </Card>
+          </ModalComponent>
+          <div className="mb-6 flex gap-4">
+        <GenericButton outlined onClick={() => setShowProvidersProduct(true)} label={"Productos"}>
+        </GenericButton>
+        <GenericButton onClick={handleExportCompletedOrders} label={"Compras Completadas"} />
+          </div>
+        </Box>
         <form
           ref={formRef}
           onSubmit={(e) => {
@@ -457,6 +596,7 @@ const ProvidersView = ({ state }) => {
           }}
         >
           <Box>
+            {/* Grupo de campos: Nombre y Email */}
             <GridField agrouped={true}>
               <FieldGroup
                 onChange={handleChange}
@@ -473,14 +613,33 @@ const ProvidersView = ({ state }) => {
                 value={provider ? provider.email : ""}
               />
             </GridField>
+
+            {/* Grupo de campos: Teléfono y Dirección */}
             <GridField agrouped={true}>
+              {/* Teléfono - Formato venezolano */}
               <FieldGroup
-                onChange={handleChange}
-                label="Teléfono"
-                name="phone"
-                required
-                value={provider ? provider.phone : ""}
-              />
+                  onChange={(e) => {
+                    let formattedValue = e.target.value.replace(/[^0-9]/g, ""); // Solo números
+
+                    // Limitar a un máximo de 11 dígitos (4 para el código y 7 para el número)
+                    if (formattedValue.length > 11) {
+                      formattedValue = formattedValue.slice(0, 11); // Cortar a los primeros 11 dígitos
+                    }
+
+                    // Aplicar el formato #### #######
+                    if (formattedValue.length > 4) {
+                      formattedValue = `${formattedValue.slice(0, 4)} ${formattedValue.slice(4)}`;
+                    }
+
+                    handleChange({ target: { name: "phone", value: formattedValue } });
+                  }}
+                  label="Teléfono"
+                  name="phone"
+                  required
+                  placeholder="0424 1234567"
+                  value={provider ? provider.phone : ""}
+                />
+
               <FieldGroup
                 onChange={handleChange}
                 label="Dirección"
@@ -489,8 +648,59 @@ const ProvidersView = ({ state }) => {
                 value={provider ? provider.address : ""}
               />
             </GridField>
-            {/* <FieldGroup label="Email" required /> */}
+
+            {/* Grupo de campos: RIF y Cédula */}
+            <GridField agrouped={true}>
+              {/* RIF - Solo numérico */}
+              <FieldGroup
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/[^0-9]/g, ""); // Solo números
+                  handleChange({ target: { name: "rif", value: numericValue } });
+                }}
+                label="RIF"
+                name="rif"
+                required
+                placeholder="Solo números"
+                value={provider ? provider.rif : ""}
+              />
+
+              {/* Cédula */}
+              <Box display="flex" alignItems="center" gap={1} sx={{pt:3}}>
+                {/* Select para tipo de documento */}
+                <FormControl sx={{ width: "20%" }} variant="outlined" required>
+                  <InputLabel id="select-label">J</InputLabel>
+                  <Select
+                    labelId="select-label"
+                    label="V"
+                    name="type_of_document"
+                    onChange={(e) =>
+                      handleChange({ target: { name: "type_of_document", value: e.target.value } })
+                    }
+                    value={provider ? provider.type_of_document : "J"}
+                  >
+                    <MenuItem value={"V"}>V</MenuItem>
+                    <MenuItem value={"J"}>J</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {/* Campo para número de cédula */}
+                <FieldGroup
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/[^0-9]/g, ""); // Solo números
+                    handleChange({ target: { name: "document", value: numericValue } });
+                  }}
+                  // label="Cédula"
+                  name="document"
+                  required
+                  placeholder="Cédula"
+                  sx={{ width: "80%" }}
+                  value={provider ? provider.document : ""}
+                />
+              </Box>
+            </GridField>
           </Box>
+
+          {/* Botón para enviar el formulario */}
           <Box className="flex justify-center my-4">
             <GenericButton
               label={provider ? "Editar proveedor" : "Agregar proveedor"}

@@ -15,6 +15,7 @@ class OrderSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation["provider"] = {
             "name": instance.provider.name,
+            "id": instance.provider.id,
         }
         representation["provider_name"] = instance.provider.name
         if instance.product:

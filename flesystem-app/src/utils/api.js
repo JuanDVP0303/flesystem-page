@@ -5,11 +5,11 @@ import { toast } from 'react-toastify';
 //Cargar el archivo .env
 
 export const api = axios.create({
-    baseURL: "http://localhost:8000",
+    baseURL: import.meta.env.VITE_API_URL,
 });
 
 const updateApi = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 

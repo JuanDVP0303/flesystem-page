@@ -16,6 +16,8 @@ export const InventoryProvider = ({ children }) => {
     const [inventoryModalType, setInventoryModalType] = useState(null);
     const [searchedProducts, setSearchedProducts] = useState([])
     const [product, setProduct] = useState(null);
+    const [selectedProducts, setSelectedProducts] = useState([])
+
     const {goTo} = useGoTo()
     
     const formRef = useRef(null)
@@ -30,50 +32,23 @@ export const InventoryProvider = ({ children }) => {
     }
 
     const addProduct = async(productFormRef, formValues) => {
-
         const formData = new FormData(productFormRef.current)
-        const variations = formValues.variations.map(variation => {
-            if(formValues.variationsGlobalPriceUnit) {
-                variation.variation_price_unit = formValues.price_unit
-            }
-            return variation
-        })
-        if (formValues.hasVariations && variations && variations.length > 0){
-            formData.append("variations", JSON.stringify(variations))
-        }
-        const values = Object.fromEntries(formData.entries())
-        console.log("VALUES", values)
-        values["movement_type"] = inventoryModalType === "income" ? "income" : "outcome"
-        for(const key in values){
-            if(values[key] === ""){
-                delete values[key]
-            }
-        }
-        if(product){
-            values["product_id"] = product.id
-        }
+        let errorThrowed = false
+        formData.set('provider', formValues.provider)
         let res;
         try{
-            res = await api.post("/inventory/products/", values)
+            res = await api.post("/inventory/products/", formData)
+
         }catch(e){
-          console.log("ENTRANDO AQUI", e.response)
             res = e.response
+            for(const key in res.data){
+                toast.error(`${key}: ${res.data[key]}`)
+            }
+            errorThrowed = true
         }
         
         if (res.status === 201) {
           setProducts(prev => {
-            const product_id = res.data.id
-            const product_exists = prev.find(product => product.id === product_id)
-            if(product_exists){
-              console.log("YA EXISTE")
-              return prev.map(product => {
-                if(product.id === product_id){
-                  console.log("ENCONTRADO", res.data)
-                  return res.data
-                }
-                return product
-              })
-            }
             return [res.data, ...prev]
           })
           setProduct(null)
@@ -88,9 +63,8 @@ export const InventoryProvider = ({ children }) => {
           toast.success("Producto añadido con éxito")
         }
         else{
-            toast.error(res.data[Object.keys(res.data)[0]])
+          if(!errorThrowed)toast.error(res.data[Object.keys(res.data)[0]])
         }
-        
       } 
 
       /*
@@ -104,10 +78,16 @@ export const InventoryProvider = ({ children }) => {
       
       */
       
-      const searchProduct = useCallback(async (search) => {
-        const res = await api.get(`/inventory/products/?name=${search}`)
+      const searchProduct = useCallback(async (search, provider_id) => {
+        let url = `/inventory/products/?name=${search}`
+        if(provider_id){
+          url += `&provider=${provider_id}`
+        }
+        console.log(url, search, provider_id)
+        const res = await api.get(url)
         console.log(res)
-        setSearchedProducts(res?.data?.products?.map(product => {
+        const arr = res?.data?.products ? res.data.products : res.data
+        setSearchedProducts(arr?.map(product => {
             return {
               ...product,
               label:product?.name
@@ -116,9 +96,10 @@ export const InventoryProvider = ({ children }) => {
         // setProducts(res.data.products)
       }, [])
       
-      const searchProductDebounce = useMemo(() => debounce((search) => searchProduct(search), 500),[searchProduct]);
+      const searchProductDebounce = useMemo(() => debounce((search, provider_id) => searchProduct(search, provider_id), 500),[searchProduct]);
       
-  const editProductFunction = async (productEdited, productId, isVariant, batch) => {
+  
+      const editProductFunction = async (productEdited, productId, isVariant, batch) => {
     let res;
     try {
       const data = {
@@ -356,7 +337,8 @@ export const InventoryProvider = ({ children }) => {
         batchDivision,
         getLocations,
         getProductsByLocation,
-        transferProducts
+        transferProducts,
+        selectedProducts, setSelectedProducts
     }
 
     return (

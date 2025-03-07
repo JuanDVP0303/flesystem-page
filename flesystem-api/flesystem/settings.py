@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'inventory',
     'users',
     'purchase',
-    'corsheaders'
+    'corsheaders',
+    'buying'
 ]
 
 MIDDLEWARE = [
@@ -159,3 +160,8 @@ SIMPLE_JWT = {
 
 
 AUTH_USER_MODEL = "users.Account"
+
+import os
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

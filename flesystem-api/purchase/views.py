@@ -1,10 +1,18 @@
 from rest_framework import viewsets
-from .models import Provider, Order
+from .models import Provider, Order,OrderItem
 from .serializers import ProviderSerializer, OrderSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from inventory.models import Product, ProductBatch
+from inventory.models import Product, ProductBatch, Movement
+from inventory.serializer import ProductSerializer
 from inventory.utils import generate_random_id
+from datetime import datetime
+import pandas as pd
+from inventory.reports import generate_pdf_response, generate_excel_response, generate_csv_response
+from django.db import models
+from django.db.models import Count, Sum, F
+from rest_framework.response import Response
+from django.http import HttpResponse
 
 class PurchaseViewset(viewsets.ModelViewSet):
     queryset = Order.objects.all()
@@ -65,30 +73,66 @@ class PurchaseViewset(viewsets.ModelViewSet):
             provider=provider,
             purchase_date=purchase_date,
             status = "PENDING",
-            total_cost = float(request.data.get("total_cost",0)),
+            total_cost = float(request.data.get("total_cost",0)) if request.data.get("total_cost") else float(quantity) * float(price_unit),
             product=product,
             quantity=quantity,
+            price_unit=price_unit,
             
         )
         # Crear el lote del producto
-        batch = ProductBatch.objects.create(
-            product=product,
-            purchase_order=order,
-            quantity=quantity,
-            price_unit=price_unit,
-            sell_price=product.sell_price,
-            batch=generate_random_id(),
-            description=product.description,
-            unit_of_measure=product.unit_of_measure,            
+    
             
+        Movement.objects.create(
+                product=product,
+                movement_type="income",
+                date=datetime.now(),
+                quantity = quantity 
+            )
             
-        )
 
         return Response(
             {"message": "Orden de compra creada exitosamente.", "data" : OrderSerializer(order).data},
             status=201,
         )
         
+    
+    @action(detail=False, methods=['post'], url_path='order-status')
+    def order_status(self, request):
+        order_id = request.data.get("order_id")
+        status = request.data.get("status")
+        real_quantity = request.data.get("real_quantity")
+        if not order_id or not status:
+            return Response(
+                {"error": "ID de orden y estado son requeridos."},
+                status=400,
+            )
+
+        # Validar si la orden existe
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({"error": "La orden no existe."}, status=404)
+
+        if status == "COMPLETED":
+            batch = ProductBatch.objects.create(
+                product=order.product,
+                purchase_order=order,
+                quantity=real_quantity,
+                price_unit=order.price_unit,
+                sell_price=order.product.sell_price,
+                batch=generate_random_id(),
+                description=order.product.description,
+                unit_of_measure=order.product.unit_of_measure,            
+            )
+        order.real_quantity = real_quantity
+        order.status = status
+        order.save()
+
+        return Response(
+            {"message": "Estado de la orden actualizado exitosamente.", "data" : OrderSerializer(order).data},
+            status=200,
+        )    
+    
     @action(detail=False, methods=['get'], url_path='get-orders')
     def get_orders(self, request):
         orders = Order.objects.all().order_by('-created_at')
@@ -119,3 +163,106 @@ class ProviderViewset(viewsets.ModelViewSet):
         serializer = ProviderSerializer(providers, many=True)
         return Response(serializer.data)
     
+    @action(detail=False, methods=['get'], url_path='reports/completed-purchases')
+    def completed_purchases_report(self, request):
+        format = request.query_params.get('format', 'json')
+        providers = Provider.objects.annotate(
+            completed_orders=Count('orders', filter=models.Q(orders__status='COMPLETED')),
+            total_spent=Sum('orders__total_cost', filter=models.Q(orders__status='COMPLETED'))
+        )
+        
+        data = [{
+            "Proveedor": p.name,
+            "Ordenes Completadas": p.completed_orders,
+            "Total Gastado": p.total_spent
+        } for p in providers]
+        
+        if format in ['pdf', 'excel', 'csv']:
+            df = pd.DataFrame(data)
+            filename = f"compras_completadas_{datetime.now().strftime('%Y%m%d')}"
+            
+            if format == 'pdf':
+                return generate_pdf_response(data, filename)
+            elif format == 'excel':
+                return generate_excel_response(df, filename)
+            elif format == 'csv':
+                return generate_csv_response(df, filename)
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='providers-products')
+    def providers_products(self, request):
+        provider_id = request.query_params.get('provider_id')
+        provider = Provider.objects.get(id=provider_id)
+        products = Product.objects.filter(provider=provider)
+        data = ProductSerializer(products, many=True).data
+        return Response(data)
+    
+    @action(detail=True, methods=['get'], url_path='export-completed-orders')
+    def export_completed_orders(self, request, id=None):
+        print("ID", id)
+        """
+        Exporta las compras completadas de un proveedor en formato Excel.
+        """
+        try:
+            # Filtrar las órdenes completadas para el proveedor especificado
+            orders = Order.objects.filter(provider__id=id, status='COMPLETED').annotate(
+                product_name=F('product__name')
+            ).values(
+                'id', 'product_name', 'quantity', 'price_unit', 'total_cost', 'purchase_date'            )
+
+            # Crear un DataFrame con los datos
+            df = pd.DataFrame(list(orders))
+
+            # Verificar si hay datos para exportar
+            # if df.empty:
+            #     return Response({"detail": "No hay compras completadas para este proveedor."}, status=404)
+
+            # Renombrar las columnas al español
+            df = df.rename(columns={
+                'id': 'ID de Compra',
+                'product_name': 'Producto',
+                'quantity': 'Cantidad',
+                'price_unit': 'Precio Unitario',
+                'total_cost': 'Costo Total',
+                'purchase_date': 'Fecha de Compra',
+                # 'created_at': 'Fecha de Creación'
+            })
+
+            # Convertir las fechas a formato legible (sin hora)
+            for column in ['Fecha de Compra']:
+                if column in df.columns:
+                    df[column] = pd.to_datetime(df[column]).dt.date
+
+            # Generar el archivo Excel
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = f'attachment; filename="compras_completadas_proveedor_{id}.xlsx"'
+
+            with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Compras Completadas')
+                workbook = writer.book
+                worksheet = writer.sheets['Compras Completadas']
+
+                # Formato para el encabezado
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC',
+                    'border': 1
+                })
+
+                # Aplicar formato al encabezado
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(0, col_num, value, header_format)
+
+                # Ajustar automáticamente el ancho de las columnas
+                for column in df:
+                    column_length = max(df[column].astype(str).map(len).max(), len(column))
+                    col_idx = df.columns.get_loc(column)
+                    worksheet.set_column(col_idx, col_idx, column_length)
+
+            return response
+
+        except Exception as e:
+            return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)

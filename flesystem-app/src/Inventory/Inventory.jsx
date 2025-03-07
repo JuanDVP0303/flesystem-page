@@ -18,7 +18,6 @@ import {
   TextField,
 } from "@mui/material";
 import ControlPointOutlinedIcon from '@mui/icons-material/ControlPointOutlined';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import React, {useEffect, useState } from "react";
@@ -36,6 +35,11 @@ import ProductTable from "./components/ProductTable";
 import {  GenericButton } from "./components/Buttons";
 import SearchBar from "./components/SearchBar";
 import { useGlobalContext } from "../../src/hooks/useGlobalContext";
+import SearchAutocomplete from "./components/SearchAutoComplete";
+import { usePurchaseContext } from "../hooks/usePurchasesContext";
+import DragAndDropBox from "../components/utils/DragAndDropBox";
+import { toast } from "react-toastify";
+import { api } from "../utils/api";
 
 const formValuesDefault = {
   name: "",
@@ -54,14 +58,6 @@ const formValuesDefault = {
   safety_stock: "",
   showAdvancedOptions: false,
   expirationEnabled: false,
-  variations: [{
-    variation_name: "",
-    variation_quantity: "",
-    variation_sku: "",
-    variation_price_unit: "",
-  }],
-  hasVariations: false,
-  variationsGlobalPriceUnit: true,
   disableFields: false,
 }
 
@@ -80,10 +76,22 @@ const Inventory = () => {
   const {goTo} = useGoTo();
   const [openTransferItems, setOpenTransferItems] = useState(false);
   // const {office, getOffice, currencySelected, setCurrencySelected} = useMovementContext()
-  const { authenticatedUser } = useGlobalContext();
   useEffect(() => {
     getProducts();
   }, []); // Asegúrate de incluir todas las dependencias necesarias
+  const handleExportAvailablesProducts = async () => {
+    try {
+        const response = await api.get(`/inventory/products/export-available-products/`, { responseType: "blob" });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `productos_disponibles.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+    } catch (error) {
+        console.error("Error al exportar las compras completadas:", error);
+    }
+};
 
   return (
     <Box
@@ -111,7 +119,7 @@ const Inventory = () => {
         >
           <Box className="flex items-center text-[#00db54]">
             <Inventory2OutlinedIcon />
-            <span className={`text-xl font-bold text-[${genericBlue}]`}>Tienda</span>
+            <span className={`text-xl font-bold text-[${genericBlue}]`}>Inventario</span>
           </Box>
           <Box sx={{display:"flex", gap:2}}>
           {/* <ExchangeButton func={() => {}} /> */}
@@ -145,6 +153,10 @@ const Inventory = () => {
           <Card className="m-0 md:m-4 rounded-lg shadow-lg overflow-auto">
               <ProductTable products={searchedProducts?.length > 0 ? searchedProducts : products} />
           </Card>
+          <Box>
+
+          <GenericButton outlined onClick={handleExportAvailablesProducts} label="Disponibilidad de productos" />
+          </Box>
         </Box>
       </MiniCard>
     </Box>
@@ -152,9 +164,10 @@ const Inventory = () => {
 };
 
 
-export const MiniCard = ({ children }) => {
+export const MiniCard = ({ children, className }) => {
   return (
     <Box
+    className={`${className}`}
       sx={{
         backgroundColor: "white",
         padding: 1.5,
@@ -194,10 +207,15 @@ const InventoryModal = () => {
 
 const IncomeInventory = () => {
   const { addProduct, formRef, searchProductDebounce, setSearchedProducts, product } = useInventoryContext();
+  const {providers, getProviders} = usePurchaseContext()
   const [formValues, setFormValues] = useState(formValuesDefault);
-
+  const [searchedProviders, setSearchedProviders] = useState([])
+  useEffect(() => {
+    getProviders()
+  }, [])
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log("NAME VLAUE", name,value)
     setFormValues({
       ...formValues,
       [name]: value,
@@ -281,25 +299,51 @@ const IncomeInventory = () => {
       }
   }, [])
 
+  const searchProviders = (partialName) => {
+    return providers.filter(provider => provider.name.toLowerCase().includes(partialName.toLowerCase()))
+  } 
+
+
+  /*
+    -Generar componente de visualización de productos seleccionados en el carrito de compras
+    -En la visualización de los productos agregados en las compras, poner inputs de cantidad ademas de mostrar el precio unitario
+    -Agregar al final un boton de "Generar pedido" que al hacer click, genere un pedido con los productos seleccionados y limpie el carrito
+    -Poner un mensaje como "Listo, tu pedido ha sido generado, ponte en contacto con el proveedor para coordinar el pago y la entrega"
+    -Luego la lógica del operador para aceptar o rechazar el pedido, caso aprobado se actualiza el stock y se genera el comprobante de compra
+  */
+
   return (
     <Box className="p-5">
       <form
         style={{ width: "100%" }}
         onSubmit={(e) => {
           e.preventDefault();
+          if(!formValues.product_image){
+            toast.error("Debes subir una imagen del producto")
+            return
+          }
           addProduct(formRef, formValues);
         }}
         ref={formRef}
       >
         <Box sx={{ width: "100%" }}>
+            <GridField>
+            <SearchAutocomplete
+              options={providers}
+              onChange={handleChange}
+              required={true}
+              value={formValues?.provider ?? null}
+              name={"provider"}
+              placeholder={"Proveedor"}
+              searchFunction={searchProviders}
+            />
+            </GridField>
           <Grid container spacing={4}>
             <GridField>
               <FieldGroup
                 onChange={handleChange}
                 value={formValues.name}
                 name="name"
-                // searchFunction={searchProductDebounce}
-                // disabled={formValues.disableFields}
                 disableShowProduct={true}
                 required={true}
                 label="Nombre"
@@ -315,36 +359,23 @@ const IncomeInventory = () => {
                 numeric={true}
                 name="unit_of_measure"
                 double={true}
-                // placeholder="Ex:. 10.00"
               />
+                <FieldGroup
+                  onChange={handleChange}
+                  value={formValues.min_stock}
+                  label="Min. stock"
+                  numeric={true}
+                  required={true}
+                  name="min_stock"
+                  placeholder="Ex:. 20..."
+                />
                <FieldGroup
                   onChange={handleChange}
                   value={formValues.description}
                   label="Descripción"
-                  // numeric={true}
-                  // required={!formValues?.hasVariations}
-                  // disabled={!formValues?.variationsGlobalPriceUnit}
                   name="description"
                   placeholder="Ex:. Producto de alta calidad..."
                 />
-              {/* <GridField agrouped={true}>
-                <FieldGroup
-                  onChange={handleChange}
-                  value={formValues.price_unit}
-                  label="Costo unitario"
-                  numeric={true}
-                  required={!formValues?.hasVariations}
-                  disabled={!formValues?.variationsGlobalPriceUnit}
-                  name="price_unit"
-                  placeholder="Ex:. 10"
-                />
-                <FieldGroup
-                  label="Costo total"
-                  disabled={true}
-                  value={formValues.totalCost}
-                  placeholder="Ex:. 10"
-                />
-              </GridField> */}
             </GridField>
             <GridField>
               <FieldGroup
@@ -366,6 +397,15 @@ const IncomeInventory = () => {
                 optional={true}
                 placeholder="Ex:. 100.00"
               />
+                    <FieldGroup
+                  onChange={handleChange}
+                  value={formValues.max_stock}
+                  label="Max. stock"
+                  numeric={true}
+                  required={true}
+                  name="max_stock"
+                  placeholder="Ex:. 60..."
+                />
               <FieldGroup
                 onChange={handleChange}
                 value={formValues.sku}
@@ -376,16 +416,22 @@ const IncomeInventory = () => {
               />
             </GridField>
           </Grid>
-          {/* {formValues.profit != 0 && !formValues.hasVariations && (
-            <h2 className={`text-[${genericBlue}] font-semibold mt-5`}>
-              Ganancia: {formValues?.profit} {"BS"}/
-              {formValues?.unit_of_measure?.toUpperCase()}{" "}
-              {formValues?.porcentualProfit}
-            </h2>
-          )} */}
         </Box>
-    
-   
+        <Box sx={{display:"flex", justifyContent:"center"}}>
+        <DragAndDropBox
+            setFieldValue={(file) => {
+              setFormValues((prev) => ({
+                ...prev,
+                "product_image": file,
+              }));
+            }}
+            field={"product_image"}
+            label={"Foto del producto"}
+            value={formValues?.product_image}
+            width={160}
+            height={160}
+          />
+   </Box>
         <div className="w-full flex justify-center mt-10">
           <Button
             type="submit"
@@ -608,9 +654,8 @@ export const FieldGroup = ({
   numeric,
   multiple,
   type,
-  searchFunction, multiline, endAdornment, choices, disableShowProduct, formValues
+  searchFunction, multiline, endAdornment, choices, formValues, options
 }) => {
-  const {searchedProducts, setProduct} = useInventoryContext()
   return (
   
     <div className="flex flex-col flex-1">
@@ -667,7 +712,6 @@ export const FieldGroup = ({
           multiline={!!multiline}
           endAdornment={endAdornment}
           onChange={onChange}
-          
           required={required}
           variant="outlined"
           type={type ? type : numeric ? "number" : "text"}
@@ -698,48 +742,23 @@ export const FieldGroup = ({
           ))}
         </TextField>
         :
-        <Autocomplete
-          freeSolo={searchedProducts?.length === 0}
-          onChange={(e, value) => {
-            onChange({target:{name, value:value}})
-            if (value) {
-              const productInSearch = searchedProducts?.find((product) => product?.name === value?.name);
-              if (productInSearch) {
-                setProduct(productInSearch)
-              }else{
-                setProduct(null)
-              }
-
-            }
-          }}
-          required={required}
-          variant="outlined"
-          size="medium"
-          disabled={disabled}
-          value={value || null}
-          name={name}
-          options={searchedProducts}
-          renderInput={(params) => (
-            <>
-            <TextField
-              {...params}
-              endAdornment={endAdornment}
-              placeholder={placeholder}
-              InputProps={{ ...params.InputProps, multiline:!!multiline, name:name, type: numeric ? "number" : "text", onChange: (e) => {
-                searchFunction(e?.target?.value)
-                onChange(e)
-                setProduct(null)
-
-              }}}
-            />
-            </>
-          )}
-        />
+      <SearchAutocomplete
+        options={options}
+        onChange={onChange}
+        required={required}
+        disabled={disabled}
+        value={value || null}
+        name={name}
+        placeholder={placeholder}
+        endAdornment={endAdornment}
+        multiline={multiline}
+        numeric={numeric}
+        searchFunction={searchFunction}
+      />
       )}
     </div>
   );
 };
-
 export const GridField = ({ children, agrouped }) => {
   return (
     <Grid

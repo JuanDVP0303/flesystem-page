@@ -13,6 +13,10 @@ import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import Purchase from "./Purchase/Purchase"
 import PurchasesProvider from "./contexts/PurchasesProvider"
+import Admin from "./Admin/Admin"
+import { AdminProvider } from "./contexts/AdminProvider"
+import { BuyingRecordProvider } from "./contexts/BuyingRecordsProvider"
+import OperatorDashboard from "./BuyingRecords/BuyingRecords"
 
 
 export default function App() {
@@ -21,6 +25,8 @@ export default function App() {
     <GlobalProvider>
       <InventoryProvider>
       <PurchasesProvider>
+      <BuyingRecordProvider>
+        <AdminProvider>
         <Routes>
           <Route path='/' Component={Layout}>
             <Route path="/" Component={Home}/>
@@ -28,17 +34,23 @@ export default function App() {
             <Route path="/products/:productId" Component={ProductDetail}/>
             <Route path="/contact" Component={Contact}/>
             <Route path="/purchases" Component={Purchase}/>
+            <Route path="/dashboard" Component={Admin}/>
+            <Route path="/buying-records" Component={OperatorDashboard}/>
             <Route path="/inventory" Component={Inventory}/>
             <Route path="/inventory/products/:productId" Component={ProductView}/>
-            <Route path="/inventory/registry-income/:id" element={<InventoryMovements type={"income"} />}/>
-            <Route path="/inventory/registry-outcome/:id" element={<InventoryMovements type={"outcome"} />}/>
-            <Route path="/inventory/registry-general/:id" element={<InventoryMovements type={"general"} />}/>
+            <Route path="/inventory/registry-income/" element={<InventoryMovements type={"income"} />}/>
+            <Route path="/inventory/registry-outcome/" element={<InventoryMovements type={"outcome"} />}/>
+            <Route path="/inventory/registry-general/" element={<InventoryMovements type={"general"} />}/>
             <Route path="/login" element={<Auth />} />
             <Route path="/register" element={<Auth />} />
             <Route path="*" element={<h1>Not Found </h1>}></Route>
           </Route>
         </Routes>
+        </AdminProvider>
         <ToastContainer />
+      
+      </BuyingRecordProvider>
+
         </PurchasesProvider>
       </InventoryProvider>
     </GlobalProvider>

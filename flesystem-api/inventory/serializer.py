@@ -23,7 +23,7 @@ class ProductBatchSerializer(serializers.ModelSerializer):
         #     "unit_of_measure": instance.product.unit_of_measure,
         #     "description": instance.product.description,
         # }
-        representation["product_variant_name"] = instance.product_variant.name if instance.product_variant else None
+        # representation["product_variant_name"] = instance.product_variant.name if instance.product_variant else None
         representation["product_id"] = instance.product.id
         representation["category"] = instance.product.category
         return representation      

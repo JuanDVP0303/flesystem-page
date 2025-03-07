@@ -48,13 +48,13 @@ const ProductCard = ({product, isVariant, nonDelete}) => {
                 <h2 className='text-sm text-gray-500'>
                   Lote: {product?.batch || "Ninguno"}
                 </h2> 
-           {!authenticatedUser.is_superuser && <Button onClick={() => setOpenBatchDivision(true)} variant="outlined" size='small' sx={{backgroundColor:"none", borderRadius:4, color:genericBlue, border:2, fontWeight:"bold", mt:2, ":hover":{border:2}}}>
+           {/* {!authenticatedUser.is_superuser && <Button onClick={() => setOpenBatchDivision(true)} variant="outlined" size='small' sx={{backgroundColor:"none", borderRadius:4, color:genericBlue, border:2, fontWeight:"bold", mt:2, ":hover":{border:2}}}>
                    <MoveUpIcon sx={{mr:1}}/> Dividir Lote
-                  </Button>}
+                  </Button>} */}
             </div>
             <div className='flex flex-col justify-between gap-1'>
               <div className='flex'>
-             {!nonDelete  && !authenticatedUser.is_superuser &&  <DeleteButton small={true} onClick={() => {
+             {/* {!nonDelete  && !authenticatedUser.is_superuser &&  <DeleteButton small={true} onClick={() => {
                     Swal.fire({
                         title: '¿Estás seguro?',
                         text: "No podrás revertir esto!",
@@ -68,8 +68,8 @@ const ProductCard = ({product, isVariant, nonDelete}) => {
                           console.log(product?.batch)
                             deleteProduct(product.product, product?.batch)
                             }})
-                    }} />}
-              {!authenticatedUser.is_superuser && <EditButton small={true} onClick={() => setEditProduct(true)} />}
+                    }} />} */}
+              {/* {!authenticatedUser.is_superuser && <EditButton small={true} onClick={() => setEditProduct(true)} />} */}
               </div>
               {product.quantity === 0 && <div className='rounded-md px-5 bg-red-400 text-white'>
                   <p className='pb-1'>Producto agotado</p>
@@ -82,7 +82,7 @@ const ProductCard = ({product, isVariant, nonDelete}) => {
                 <KeyValue spaceBetween={true} label="Costo unitario" value={` ${("BS")?.toUpperCase()}. ${formatNumber(product?.price_unit)}`} />
                 <KeyValue spaceBetween={true} label="Valor en inventario" value={` ${("BS")?.toUpperCase()}. ${formatNumber(product?.price_unit * product?.quantity)}`} />
                 <KeyValue spaceBetween={true} label="Categoría" value={`${product?.category}`} />
-                <KeyValue spaceBetween={true} label="Ubicación" value={`${product?.location || "---"}`} />
+                {/* <KeyValue spaceBetween={true} label="Ubicación" value={`${product?.location || "---"}`} /> */}
             </div>
         </div>
             <div className='mt-10 flex h-full flex-col gap-4 p-5 border-t-[1px]'>

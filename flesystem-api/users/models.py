@@ -34,12 +34,15 @@ class UserAccountManager(BaseUserManager):
 
 class Account(AbstractBaseUser, PermissionsMixin):
     KIND_OF_PERSONS = (
-        ("user", "User"),
+        ("client", "Client"),
         ("operator", "Operator"),
         ("admin", "Admin"),
     )
     email = models.EmailField(max_length=255, unique=True)
-    kind_of_person = models.CharField(max_length=255, default="user", choices=KIND_OF_PERSONS)
+    document = models.CharField(max_length=255, unique=True, null=True)
+    phone = models.CharField(max_length=255, unique=True, null=True)
+    rif = models.CharField(max_length=255, unique=True, null=True)
+    kind_of_person = models.CharField(max_length=255, default="client", choices=KIND_OF_PERSONS)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

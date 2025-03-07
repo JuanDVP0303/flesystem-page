@@ -7,19 +7,31 @@ from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
-from datetime import datetime
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Count
 from rest_framework.response import Response
-import json
+import pandas as pd
+from django.db.models.functions import Trunc
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.http import HttpResponse
+
 # from audits.views import create_movement, asign_credits
 # from operators.models import OperationsCategories, Bank, BranchOffice
 from .utils import generate_random_id, get_operator_and_validate, divide_batches
+from .reports import generate_csv_response, generate_excel_response, generate_pdf_response
 # from audits.utils import dollar_to_local, convert_amount_to_dollar
 
 class ProductsViewset(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     lookup_field = 'name' 
+    
+    def get_object(self):
+        queryset = self.get_queryset()
+        filter = {}
+        filter[self.lookup_field] = self.kwargs[self.lookup_field]
+        print("FILTER", filter)
+        return get_object_or_404(queryset, **filter)
     
     def get_serializer_context(self):
         # Llama al método de la clase base para obtener el contexto por defecto
@@ -48,8 +60,15 @@ class ProductsViewset(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
-        
+        print(queryset)
+        #Mostrar los query params
+        print("QUERY PARAMS", request.query_params)
         print("LISTANDO")
+        if request.query_params.get("provider"):
+            provider = request.query_params.get("provider")
+            queryset = queryset.filter(provider__id=provider)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         # Create a custom response including both products and inventory value
         response_data = {
             'products': serializer.data,
@@ -59,58 +78,27 @@ class ProductsViewset(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
-            inventory = Inventory.objects.last()
-            product_movement_type = request.data.get("movement_type")
-            product_id = request.data.get("product_id")
-        
-            total_cost = 0
-            data = request.data.copy()  # Use copy to avoid modifying the original request data
-        
-            print("DATA", data, "total_cost", total_cost, "quantity")
-        
-            if request.data.get("sku"):
-                if Product.objects.filter(sku=request.data.get("sku")).exists() and not product_id:
-                    raise ValidationError({"sku": "Ya existe un producto con este SKU"})
-            if not product_id:
-                serializer = self.get_serializer(data=data)
-                serializer.is_valid(raise_exception=True)
-                # Save the product instance
-                product = serializer.save()
-            else:
-                product = get_object_or_404(Product, id=product_id)
-                serializer = self.get_serializer(product, data=data, partial=True)
-                serializer.is_valid(raise_exception=True)
-                if not product.active:
-                     product.active = True
-                
-                product = serializer.save()
+        inventory = Inventory.objects.last()
+        name = request.data.get("name")
+        if Product.objects.filter(name=name).exists():
+            raise ValidationError({"name": "Ya existe un producto con este nombre"})
+        total_cost = 0
+        data = request.data.copy() 
+        if request.data.get("sku"):
+            if Product.objects.filter(sku=request.data.get("sku")).exists():
+                raise ValidationError({"sku": "Ya existe un producto con este SKU"})
+        data["active"] = True
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        product = serializer.save()
 
-            sell_price = request.data.get("sell_price")
-            sell_price = sell_price
-            print("IS ENTERING HERE 3")
-            ProductBatch.objects.create(product=product,
-            sell_price=sell_price,
-            location=request.data.get("location"),
-            batch=generate_random_id(),
-            waste=request.data.get("waste"),
-            safety_stock=request.data.get("safety_stock") or 0,
-            unit_of_measure=request.data.get("unit_of_measure") or product.unit_of_measure,
-            description=request.data.get("description"),
-            )
 
-            
-            
-            
-            Movement.objects.create(
-                product=product,
-                movement_type=product_movement_type,
-                date=datetime.now()
-            )
-            
-            inventory.products.add(product)
-            
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-       
+        sell_price = request.data.get("sell_price")
+        sell_price = sell_price
+        inventory.products.add(product)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
       
     @action(detail=False, methods=['delete'], url_path='delete-product', url_name='delete-product')
     def delete_product(self, request, *args, **kwargs):
@@ -330,50 +318,120 @@ class ProductsViewset(viewsets.ModelViewSet):
         return Response(ProductBatchSerializer(new_batches, many=True).data, status=status.HTTP_200_OK)        
         
         
+    @action(detail=False, methods=['get'], url_path='min-stock-products', url_name='min-stock-products')
+    def get_min_stock_produts(self, request, *args, **kwargs):
+        inventory = Inventory.objects.last()
+        products = inventory.products.all()
+        min_stock_products = []
+        for product in products:
+            batches = ProductBatch.objects.filter(product=product)
+            total_quantity = batches.aggregate(total_quantity=Sum('quantity')).get('total_quantity', 0) or 0
+            print("TOTAL", total_quantity, product.min_stock)
+            if not product.min_stock:
+                continue
+            if total_quantity <= product.min_stock + 5:
+                min_stock_products.append({
+                    'product_name': product.name,
+                    'total_quantity': total_quantity,
+                    'min_stock': product.min_stock,
+                    'max_stock': product.max_stock,
+                    'product_id': product.id,
+                    'provider_id': product.provider.id,
+                    'sell_price': product.sell_price
+                })        
         
-        
-        
-        
-    # def perform_create(self, serializer):
-    #     operatorId = self.request.data.get("office")
-    #     product_movement_type = self.request.data.get("movement_type")
-    #     operator = get_object_or_404(Operator, id=operatorId)
-    #     variants = self.request.data.get("variations")
-        
-    #     if self.request.data.get("sku"):
-    #         if Product.objects.filter(sku=self.request.data.get("sku")).exists():
-    #             raise ValidationError({"sku": "Ya existe un producto con este SKU"})
-    #     if self.request.user != operator.management_user and not self.request.user == operator.user:
-    #         raise PermissionDenied()
-    #     inventory = Inventory.objects.get_or_create(user=operator.management_user)
-    #     inventory = inventory[0]
-    #     data = self.request.data
-    #     del data["variations"]
-    #     serializer.is_valid(raise_exception=True)
-    #     product = serializer.save()
-    #     try:
-    #         if(variants):
-    #             variations = json.loads(variants)
-    #             print("VARIACIONES",variations)
-    #             for variation in variations:
-    #                 ProductVariants.objects.create(product=product, name=variation.get("variation_name"), price=variation.get("variation_price_unit"), quantity=variation.get("variation_quantity"), sku=variation.get("variation_sku"))
-    #     except Exception as e:
-    #         print("GRAN ERROR",e)
-    #         serializer.instance.delete()
-    #         return Response({"error": "Error al crear las variaciones"}, status=status.HTTP_400_BAD_REQUEST)
-    #     print("SALIENDO")
-    #     Movement.objects.create(product=product, quantity=serializer.instance.quantity, movement_type=product_movement_type, date=datetime.now())
-    #     inventory.products.add(serializer.instance)
-        
-    #     return product
+        return Response(min_stock_products, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='export-available-products', url_name='export-available-products')
+    def export_available_products(self, request, *args, **kwargs):
+        """
+        Exporta los productos disponibles (no cerca de su stock mínimo) en formato Excel.
+        """
+        try:
+            # Margen de tolerancia para considerar productos cerca del stock mínimo
 
+            # Obtener el inventario actual y los productos
+            inventory = Inventory.objects.last()
+            products = inventory.products.all()
 
+            available_products = []
+
+            for product in products:
+                batches = ProductBatch.objects.filter(product=product)
+                total_quantity = batches.aggregate(total_quantity=Sum('quantity')).get('total_quantity', 0) or 0
+
+                # Verificar si el producto tiene configurado un stock mínimo
+                if not product.min_stock:
+                    continue
+
+                # Si el total está por encima del rango de alerta, se considera disponible
+                if total_quantity > product.min_stock + 5:
+                    available_products.append({
+                        'product_name': product.name,
+                        'total_quantity': total_quantity,
+                        'min_stock': product.min_stock,
+                        'max_stock': product.max_stock,
+                        'product_id': product.id,
+                        'provider_id': product.provider.id if product.provider else None,
+                        'sell_price': product.sell_price
+                    })
+
+            # Verificar si hay productos disponibles para exportar
+            if not available_products:
+                return Response({"detail": "No hay productos disponibles para exportar."}, status=404)
+
+            # Crear un DataFrame con los datos
+            df = pd.DataFrame(available_products)
+
+            # Renombrar las columnas al español
+            df = df.rename(columns={
+                'product_name': 'Producto',
+                'total_quantity': 'Cantidad Total',
+                'min_stock': 'Stock Mínimo',
+                'max_stock': 'Stock Máximo',
+                'product_id': 'ID del Producto',
+                'provider_id': 'ID del Proveedor',
+                'sell_price': 'Precio de Venta'
+            })
+
+            # Generar el archivo Excel
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = f'attachment; filename="productos_disponibles.xlsx"'
+
+            with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Productos Disponibles')
+                workbook = writer.book
+                worksheet = writer.sheets['Productos Disponibles']
+
+                # Formato para el encabezado
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC',
+                    'border': 1
+                })
+
+                # Aplicar formato al encabezado
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(0, col_num, value, header_format)
+
+                # Ajustar automáticamente el ancho de las columnas
+                for column in df:
+                    column_length = max(df[column].astype(str).map(len).max(), len(column))
+                    col_idx = df.columns.get_loc(column)
+                    worksheet.set_column(col_idx, col_idx, column_length)
+
+            return response
+
+        except Exception as e:
+            return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
+        
 class MovementsViewset(viewsets.ModelViewSet):
     queryset = Movement.objects.all()
     serializer_class = MovementSerializer
 
     def get_queryset(self):
-        operatorId = self.request.query_params.get("office")
         type = self.request.query_params.get("type")
         inventory = Inventory.objects.last()
         # Obtener los productos del inventario
@@ -383,4 +441,96 @@ class MovementsViewset(viewsets.ModelViewSet):
         
         return movements.order_by('-date')
 
-# Create your views here.
+
+
+class InventoryReportsViewset(viewsets.ViewSet):
+    @action(detail=False, methods=['get'], url_path='low-stock')
+    def low_stock_report(self, request):
+        threshold = request.query_params.get('threshold', 10)
+        products = Product.objects.filter(current_stock__lte=threshold)
+        data = [{
+            "Producto": p.name,
+            "Stock Actual": p.current_stock,
+            "Stock Mínimo": p.min_stock
+        } for p in products]
+        
+
+        if request.query_params.get('format') == 'pdf':
+            return generate_pdf_response(data, 'low_stock_report')
+        elif request.query_params.get('format') == 'excel':
+            df = pd.DataFrame(data)
+            return generate_excel_response(df, 'low_stock_report')
+        elif request.query_params.get('format') == 'csv':
+            df = pd.DataFrame(data)
+            return generate_csv_response(df, 'low_stock_report')
+        
+        
+        # Similar lógica de exportación...
+    
+    @action(detail=False, methods=['get'], url_path='sales-trends')
+    def sales_trends_report(self, request):
+        # Parámetros de la solicitud
+        period = request.query_params.get('period', 'daily')
+        format_file = request.query_params.get('format_file', 'json')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+
+        # Configurar fechas
+        if not start_date:
+            start_date = timezone.now().date() - timedelta(days=30)
+        else:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+
+        if not end_date:
+            end_date = timezone.now().date()
+        else:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+        # Configurar el truncamiento de fecha según el período
+        date_trunc = {
+            'daily': 'day',
+            'weekly': 'week',
+            'monthly': 'month',
+            'annual': 'year'
+        }.get(period, 'day')
+
+        # Consulta para obtener las tendencias de ventas
+        trends = Movement.objects.filter(
+            movement_type='outcome',
+            date__range=(start_date, end_date)
+        ).annotate(
+            period=Trunc('date', date_trunc)
+        ).values('period', 'product__name', 'product__sell_price').annotate(
+            total_quantity=Sum('quantity'),
+            total_sales=Sum(F('quantity') * F('product__sell_price')),
+            # products_sold=Count('product', distinct=True)
+        ).order_by('period', '-total_sales')
+
+        # Procesar datos
+        data = []
+        for t in trends:
+            data.append({
+                "period": t['period'],
+                "product": t['product__name'],
+                "product_price": round(t['product__sell_price'], 2),
+                "total_quantity": int(t['total_quantity']),
+                "total_sales": round(t['total_sales'], 2),
+                # "products_sold": t['products_sold']
+            })
+
+        # Generar respuesta según el formato solicitado
+        if format_file == 'pdf':
+            return generate_pdf_response(data, 'sales_trends_report')
+        elif format_file == 'excel':
+            df = pd.DataFrame(data)
+            return generate_excel_response(df, 'sales_trends_report')
+        elif format_file == 'csv':
+            df = pd.DataFrame(data)
+            return generate_csv_response(df, 'sales_trends_report')
+        else:
+            return Response({
+                "start_date": start_date,
+                "end_date": end_date,
+                "period": period,
+                "data": data
+            })

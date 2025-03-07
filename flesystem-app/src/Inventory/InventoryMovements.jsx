@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import { MiniCard } from './Inventory'
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import { Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Button, Dialog, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { useGoTo } from '../../src/hooks/useGoTo';
 import moment from 'moment'
 import { api } from '../utils/api';
+import SalesTrendsReport from './components/SalesTrendReport';
+import { ModalComponent } from '../components/utils/ModalComponent';
 const InventoryMovements = ({type}) => {
   const [movements, setMovements] = useState([])
-  const {id} = useParams()
+  const [showSalesTrend, setShowSalesTrend] = useState(false)
   const {goTo} = useGoTo()
 
   const getMovements = async () => {
-    const res = await api.get(`/inventory/movements/?office=${id}&type=${type}`)
+    const res = await api.get(`/inventory/movements/?&type=${type}`)
     setMovements(res.data)
   }
 
@@ -22,12 +24,13 @@ const InventoryMovements = ({type}) => {
 
   return (
     <Box className="p-5 md:p-10">
-      <GoBackInventoryButton id={id} />
+      <GoBackInventoryButton />
     <MiniCard>
       <Box
           sx={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
+            display: "flex",
+            justifyContent: "space-between",
+            // gridTemplateColumns: "1fr",
             padding: "10px",
           }}
         >
@@ -35,22 +38,34 @@ const InventoryMovements = ({type}) => {
         <AssignmentIcon  />
         <span className="text-xl font-bold text-[#0195c7] ">Registro de Inventario</span>
       </Box>
+      <Button variant='outlined' onClick={() => {
+        setShowSalesTrend(!showSalesTrend)
+      }}>
+        Reportes de ventas
+      </Button>
       </Box>
+      <ModalComponent
+        title="Reporte de ventas"
+        fullHeight
+        fullWidth
+      open={showSalesTrend} setOpen={() => setShowSalesTrend(false)}>
+        <SalesTrendsReport />
+      </ModalComponent>
     </MiniCard>  
     
     <div className='flex gap-10'>
         <button className={`${type =="income" && "registry-selected"}`} onClick={() => {
-          goTo(`/inventory/registry-income/${id}`)
+          goTo(`/inventory/registry-income/`)
         }}> 
           Ingresos
         </button>
         <button className={`${type =="outcome" && "registry-selected"}`} onClick={() => {
-          goTo(`/inventory/registry-outcome/${id}`)
+          goTo(`/inventory/registry-outcome/`)
         }}>
           Egresos
         </button>
         <button className={`${type =="general" && "registry-selected"}`} onClick={() => {
-          goTo(`/inventory/registry-general/${id}`)
+          goTo(`/inventory/registry-general/`)
         }}>
           General
         </button>
@@ -64,7 +79,7 @@ const InventoryMovements = ({type}) => {
         <TableCell>Producto</TableCell>
         <TableCell>Fecha de entrada</TableCell>
 
-        <TableCell>Ubicación</TableCell>
+        {/* <TableCell>Ubicación</TableCell> */}
         <TableCell>Cantidad</TableCell>
         <TableCell>Valor en Inventario</TableCell>
       </TableRow>
@@ -80,7 +95,7 @@ const InventoryMovements = ({type}) => {
           <TableCell>{movement.movement_type == "income" ? <Arrow type="income"/> : <Arrow type="outcome"/>}</TableCell>
           <TableCell>{movement.product.name} {movement.product_variant && ` - ${movement?.product?.variants?.find(variant => variant.id == movement.product_variant)?.name}`}</TableCell>
           <TableCell>{moment(movement.date).format("YYYY-MM-DD")}</TableCell>
-          <TableCell>{movement.location}</TableCell>
+          {/* <TableCell>{movement.location}</TableCell> */}
           <TableCell>{movement.quantity}</TableCell>
           <TableCell>{movement.product.price_unit * movement.product.quantity}</TableCell>
         </TableRow>
@@ -106,7 +121,7 @@ export const Arrow = ({type, black}) => {
 
 export default InventoryMovements
 
-export const GoBackInventoryButton = ({office}) => {
+export const GoBackInventoryButton = () => {
   const {goTo} = useGoTo()
   return <Button
   onClick={() => goTo("/inventory/")}

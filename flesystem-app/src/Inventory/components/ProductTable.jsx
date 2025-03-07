@@ -63,7 +63,7 @@ const ProductTableRow = ({ product }) => {
         <TableCell>{product.name}</TableCell>
         <TableCell>{product.sku || emptyValue}</TableCell>
         <TableCell>{product.category || emptyValue}</TableCell>
-        <TableCell>{"BS"}.{Number(product.price_unit).toFixed(2)}</TableCell>
+        <TableCell>{"BS"}.{Number(product.price_unit ?? 0).toFixed(2)}</TableCell>
         <TableCell>{getProductQuantityByUnit(product, true)}</TableCell>
         <TableCell>{"BS"}.{formatNumber(product.quantity * product.price_unit)}</TableCell>
         <TableCell>{"BS"}.{formatNumber(product.sell_price)}</TableCell>

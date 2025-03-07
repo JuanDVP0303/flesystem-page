@@ -8,6 +8,48 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.exceptions import ValidationError
 from inventory.models import Inventory
 from .constants import PERMISSIONS
+from rest_framework.decorators import action
+
+from django.http import HttpResponse
+from django.contrib.auth.decorators import user_passes_test
+import subprocess
+import os
+from rest_framework import viewsets
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+@user_passes_test(lambda u: u.is_superuser)
+def export_database(request):
+    try:
+        # Ruta del archivo de la base de datos SQLite
+        db_path = os.path.join(BASE_DIR, '../db.sqlite3')
+        backup_file = "backup.sql"
+
+        # Comando para exportar la base de datos usando sqlite3 y el comando .dump
+        command = ["sqlite3", db_path, ".dump"]
+
+        # Ejecutar el comando y capturar la salida
+        with open(backup_file, "w") as f:
+            process = subprocess.Popen(command, stdout=f, stderr=subprocess.PIPE)
+            _, error = process.communicate()
+
+        if process.returncode != 0:
+            return HttpResponse(f"Error al exportar la base de datos: {error.decode('utf-8')}", status=500)
+
+        # Leer el archivo generado y enviarlo como respuesta HTTP
+        with open(backup_file, "r") as f:
+            sql_data = f.read()
+
+        response = HttpResponse(sql_data, content_type="application/sql")
+        response["Content-Disposition"] = 'attachment; filename="database_export.sql"'
+
+        # Eliminar el archivo temporal después de enviarlo
+        os.remove(backup_file)
+
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"Error interno del servidor: {str(e)}", status=500)
+
 
 class CreateUserView(APIView):
     def post(self, request, **kwargs):
@@ -15,8 +57,6 @@ class CreateUserView(APIView):
         if kwargs.get('management_user_data'):
             data = kwargs.get('management_user_data')
         print("DATA", data)
-        if data.get("pf", None) == "pf":
-            data["is_pf"] = True
         serializer = AccountSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
@@ -80,6 +120,50 @@ class UsersViewset(APIView):
                 raise ValidationError({"error":"No puedes eliminar un superusuario"})
             user.delete()
             return Response({"message":"Usuario eliminado"}, status=status.HTTP_204_NO_CONTENT)
+        
+        
+    # Acción personalizada para exportar la base de datos SQLite
+  
+class AdminViewset(viewsets.ModelViewSet):
+    @action(detail=False, methods=['get'], url_path='export-database', url_name='export_database')
+    def export_database(self, request):
+        if not request.user.is_superuser:
+            return Response({"error": "No tienes permisos para realizar esta acción"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            # Ruta del archivo de la base de datos SQLite (un nivel atrás del settings.py)
+            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(BASE_DIR, 'db.sqlite3')
+            print(db_path)
+
+            # Archivo temporal para el volcado
+            backup_file = "backup.sql"
+
+            # Comando para exportar la base de datos usando sqlite3 y el comando .dump
+            command = ["sqlite3", db_path, ".dump"]
+
+            # Ejecutar el comando y capturar la salida
+            with open(backup_file, "w") as f:
+                process = subprocess.Popen(command, stdout=f, stderr=subprocess.PIPE)
+                _, error = process.communicate()
+
+            if process.returncode != 0:
+                return Response({"error": f"Error al exportar la base de datos: {error.decode('utf-8')}"}, status=500)
+
+            # Leer el archivo generado y enviarlo como respuesta HTTP
+            with open(backup_file, "r") as f:
+                sql_data = f.read()
+
+            response = HttpResponse(sql_data, content_type="application/sql")
+            response["Content-Disposition"] = 'attachment; filename="database_export.sql"'
+
+            # Eliminar el archivo temporal después de enviarlo
+            os.remove(backup_file)
+
+            return response
+
+        except Exception as e:
+            return Response({"error": f"Error interno del servidor: {str(e)}"}, status=500)
 class TokenRefreshCustomView(TokenRefreshView):
     pass
 
