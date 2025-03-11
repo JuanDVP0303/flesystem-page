@@ -19,6 +19,7 @@ from django.http import HttpResponse
 # from operators.models import OperationsCategories, Bank, BranchOffice
 from .utils import generate_random_id, get_operator_and_validate, divide_batches
 from .reports import generate_csv_response, generate_excel_response, generate_pdf_response
+from users.services import log_user_action
 # from audits.utils import dollar_to_local, convert_amount_to_dollar
 
 class ProductsViewset(viewsets.ModelViewSet):
@@ -96,7 +97,7 @@ class ProductsViewset(viewsets.ModelViewSet):
         sell_price = request.data.get("sell_price")
         sell_price = sell_price
         inventory.products.add(product)
-        
+        log_user_action(request.user, "crear producto", product.id, f"Se creó el producto {product.name}")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
       
@@ -114,7 +115,7 @@ class ProductsViewset(viewsets.ModelViewSet):
             batch.delete()
         
         
-        
+        log_user_action(request.user, "borrar producto", product.id, f"Se eliminó el producto {product.name}")
         product.delete()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -227,12 +228,13 @@ class ProductsViewset(viewsets.ModelViewSet):
         product = get_object_or_404(Product, id=product_id)
         
         data = request.data
-        serializer = self.get_serializer(product, data=data, partial=True)
+        serializer = ProductSerializer(product, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         if batch:
             batch = get_object_or_404(ProductBatch, batch=batch)
             self.update_batch(request, batch, data)
+        log_user_action(request.user, "editar producto", product.id, f"Se editó el producto {product.name}")
         
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -341,15 +343,12 @@ class ProductsViewset(viewsets.ModelViewSet):
                 })        
         
         return Response(min_stock_products, status=status.HTTP_200_OK)
-    
     @action(detail=False, methods=['get'], url_path='export-available-products', url_name='export-available-products')
     def export_available_products(self, request, *args, **kwargs):
         """
         Exporta los productos disponibles (no cerca de su stock mínimo) en formato Excel.
         """
         try:
-            # Margen de tolerancia para considerar productos cerca del stock mínimo
-
             # Obtener el inventario actual y los productos
             inventory = Inventory.objects.last()
             products = inventory.products.all()
@@ -395,38 +394,79 @@ class ProductsViewset(viewsets.ModelViewSet):
             })
 
             # Generar el archivo Excel
-            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
             response['Content-Disposition'] = f'attachment; filename="productos_disponibles.xlsx"'
 
             with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False, sheet_name='Productos Disponibles')
+                df.to_excel(writer, index=False, sheet_name='Productos Disponibles', startrow=1)
+
                 workbook = writer.book
                 worksheet = writer.sheets['Productos Disponibles']
 
-                # Formato para el encabezado
+                # Formatos personalizados
+                title_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 18,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'font_color': '#375623',  # Verde oscuro
+                })
+
                 header_format = workbook.add_format({
                     'bold': True,
                     'text_wrap': True,
                     'valign': 'top',
-                    'fg_color': '#D7E4BC',
-                    'border': 1
+                    'fg_color': '#9BBB59',  # Verde oliva claro
+                    'font_color': '#FFFFFF',  # Blanco
+                    'border': 1,
+                    'align': 'center',
                 })
+
+                currency_format = workbook.add_format({'num_format': '$#,##0.00'})  # Formato moneda
+
+                # Agregar título al archivo Excel
+                worksheet.merge_range('A1:G1', 'Productos Disponibles en Inventario', title_format)
 
                 # Aplicar formato al encabezado
                 for col_num, value in enumerate(df.columns.values):
-                    worksheet.write(0, col_num, value, header_format)
+                    worksheet.write(1, col_num, value, header_format)  # Encabezado en la fila 2
 
                 # Ajustar automáticamente el ancho de las columnas
                 for column in df:
                     column_length = max(df[column].astype(str).map(len).max(), len(column))
                     col_idx = df.columns.get_loc(column)
-                    worksheet.set_column(col_idx, col_idx, column_length)
+                    worksheet.set_column(col_idx, col_idx, column_length + 2)  # Agregar un poco de espacio extra
+
+                # Aplicar formato a las celdas de datos (ejemplo: precios como moneda)
+                for col_num, column in enumerate(df.columns):
+                    if column == "Precio de Venta":
+                        for row_num in range(2, len(df) + 2):  # Los datos comienzan en la fila 3 (índice base 0)
+                            worksheet.write_number(row_num, col_num, df.iloc[row_num - 2][column], currency_format)
+
+                # Crear una gráfica básica (ejemplo: Cantidad Total vs Stock Mínimo)
+                chart = workbook.add_chart({'type': 'column'})
+
+                chart.add_series({
+                    'name':       '=Productos Disponibles!$B$2',  # Título de la serie (Cantidad Total)
+                    'categories': f'=Productos Disponibles!$A$3:$A${len(df) + 2}',  # Categorías (Productos)
+                    'values':     f'=Productos Disponibles!$B$3:$B${len(df) + 2}',  # Valores (Cantidad Total)
+                    'fill':       {'color': '#4F81BD'},  # Color de las barras
+                    'data_labels': {'value': True},     # Mostrar valores en las barras
+                })
+
+                chart.set_title({'name': 'Cantidad Total de Productos'})
+                chart.set_x_axis({'name': 'Producto'})
+                chart.set_y_axis({'name': 'Cantidad Total'})
+
+                # Insertar la gráfica en la hoja de cálculo
+                worksheet.insert_chart('I5', chart)
 
             return response
 
         except Exception as e:
             return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
-        
 class MovementsViewset(viewsets.ModelViewSet):
     queryset = Movement.objects.all()
     serializer_class = MovementSerializer
@@ -534,3 +574,6 @@ class InventoryReportsViewset(viewsets.ViewSet):
                 "period": period,
                 "data": data
             })
+            
+            
+            

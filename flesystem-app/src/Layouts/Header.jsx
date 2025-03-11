@@ -2,6 +2,7 @@ import { Typography } from '@mui/material'
 import { useGlobalContext } from '../hooks/useGlobalContext'
 import NavButtons from './NavButtons'
 import { NavLink } from 'react-router-dom'
+import { api } from '../utils/api'
 
 
 
@@ -16,7 +17,19 @@ function Header() {
 
 export const NavBar = () => { 
   const {authenticatedUser} = useGlobalContext()
-  console.log("AUTH",authenticatedUser)
+  const logout = () => {
+    api.post("/users/logout/", {
+        refresh: localStorage.getItem("refresh_token"),
+      })
+      .then(() => {
+        localStorage.clear();
+        window.location.href = "/login";
+      })
+      .catch(() => {
+        localStorage.clear();
+        window.location.href = "/login";
+      });
+  };
   return (
 
     <nav className={`flex justify-between items-center  w-full  z-2 bg-green-700`} >
@@ -30,7 +43,8 @@ export const NavBar = () => {
       </Typography>
       </div>
       <ul className='flex'>
-      {authenticatedUser?.kind_of_person == 'client' || authenticatedUser?.is_superuser&&<li>
+        {console.log(authenticatedUser?.kind_of_person == 'client' || authenticatedUser?.is_superuser)}
+      {(authenticatedUser?.kind_of_person == 'client' || authenticatedUser?.is_superuser)&&<li>
       <NavButtons content="Productos" to="/products"/>
       </li>}
       <li>
@@ -61,10 +75,7 @@ export const NavBar = () => {
       {
         authenticatedUser ? 
         <li>
-          <button className='text-white' onClick={() => {
-            localStorage.clear()
-            window.location.href = "/login"
-          }}>Cerrar Sesión</button>
+          <button className='text-white' onClick={() => {logout()}}>Cerrar Sesión</button>
 
         </li>
         :

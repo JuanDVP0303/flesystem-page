@@ -119,13 +119,17 @@ export const InventoryProvider = ({ children }) => {
       if(data[expirationField]){
         data[expirationField] = moment(data[expirationField]).format("YYYY-MM-DD");
       }
+      console.log("DATA",data)
+      delete data.product_image;
       const url = isVariant ? `/inventory/products/edit_product_variants/?variant=${productId}` : `/inventory/products/edit_product/?product=${productId}`;
       res = await api.put(
         url,
         data
-      );     
+      );
+      console.log("RES",res)     
         setProduct(res.data);
     } catch (e) {
+      console.log(e)
         res = e.response;
     }
     if (res.status !== 200) {

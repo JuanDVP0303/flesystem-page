@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import AccountSerializer
+from .serializers import AccountSerializer, AuditLogSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.exceptions import ValidationError
@@ -14,9 +14,11 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import user_passes_test
 import subprocess
 import os
+from django.utils import timezone
+
 from rest_framework import viewsets
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+from .services import log_user_action
 @user_passes_test(lambda u: u.is_superuser)
 def export_database(request):
     try:
@@ -63,11 +65,18 @@ class CreateUserView(APIView):
             user.set_password(data.get('password'))
             user.is_active = True
             user.save()
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            refresh_token = str(refresh)
-            user_serializer = AccountSerializer(user)    
-            return Response({"access_token": access_token, "refresh":refresh_token, "account":user_serializer.data}, status=status.HTTP_201_CREATED)
+            
+            if not data.get("kind_of_person"):
+                log_user_action(user, "registro", None, f"El usuario {user.email} se ha registrado")
+                refresh = RefreshToken.for_user(user)
+                access_token = str(refresh.access_token)
+                refresh_token = str(refresh)
+                user_serializer = AccountSerializer(user)    
+                return Response({"access_token": access_token, "refresh":refresh_token, "account":user_serializer.data}, status=status.HTTP_201_CREATED)
+            else:
+                log_user_action(request.user, "registro admin", user.id, f"El admin ha creado al usuario {user.email} como {'cliente' if user.kind_of_person == 'client' else 'operador'} ")
+                
+                return Response({"message":"Usuario creado exitosamente"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginUserView(APIView):
@@ -85,16 +94,18 @@ class LoginUserView(APIView):
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
+            log_user_action(user, "login", None, f"El usuario {user.email} inició sesión")
+            
             return Response({"access_token": access_token, "refresh":refresh_token, "account":user_serializer.data}, status=status.HTTP_200_OK)
         return Response({"error":"Credenciales Invalidas"}, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutUserView(APIView):
     def post(self, request):
-        refresh_token = request.data.get('refresh')
-        token = RefreshToken(refresh_token)
-        token.blacklist()
-        return Response({"message":"Sesion cerrada"}, status=status.HTTP_200_OK)
+        log_user_action(request.user, "logout", None, f"El usuario {request.user.email} cerró sesión")
+        return Response({"message": "Sesión cerrada"}, status=status.HTTP_200_OK)
 
+        # except Exception as e:
+        #     return Response({"message": "Error al cerrar sesión", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UsersViewset(APIView):
     def get(self, request):
@@ -116,6 +127,7 @@ class UsersViewset(APIView):
         if request.user.is_superuser:
             user_id = self.request.query_params.get('user_id')
             user = Account.objects.get(id=user_id)
+            log_user_action(request.user, "eliminar", user_id, f"Se ha eliminado el usuario con id {user_id}")
             if user.is_superuser:
                 raise ValidationError({"error":"No puedes eliminar un superusuario"})
             user.delete()
@@ -159,11 +171,23 @@ class AdminViewset(viewsets.ModelViewSet):
 
             # Eliminar el archivo temporal después de enviarlo
             os.remove(backup_file)
+            log_user_action(request.user, "exportar", None, f"Se ha exportado la base de datos")
 
             return response
 
         except Exception as e:
             return Response({"error": f"Error interno del servidor: {str(e)}"}, status=500)
+        
+    @action(detail=False, methods=['get'], url_path='audit-log', url_name='audit_log')
+    def get_audit_log(self, request):
+        print("REQUEST", request.user)
+        if not request.user.is_superuser:
+            return Response({"error": "No tienes permisos para realizar esta acción"}, status=status.HTTP_403_FORBIDDEN)
+        from .models import AuditLog
+        audit_log = AuditLog.objects.all().order_by("-timestamp")
+        serializer = AuditLogSerializer(audit_log, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
 class TokenRefreshCustomView(TokenRefreshView):
     pass
 

@@ -65,3 +65,15 @@ class Account(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     # REQUIRED_FIELDS = ["email"]
     objects = UserAccountManager()
+
+
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(Account, on_delete=models.CASCADE)  # Usuario que realizó la acción
+    action = models.CharField(max_length=255)  # Tipo de acción (ej.: "crear producto")
+    item_id = models.IntegerField(null=True, blank=True)  # ID del elemento afectado
+    description = models.TextField()  # Descripción de la acción
+    timestamp = models.DateTimeField(auto_now_add=True)  # Fecha y hora de la acción
+
+    def __str__(self):
+        return f"{self.user.email} realizó '{self.action}' en el elemento {self.item_id} - {self.timestamp}"

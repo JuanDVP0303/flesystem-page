@@ -7,7 +7,10 @@ import PropTypes from 'prop-types';
 import { useGoTo } from '../../src/hooks/useGoTo';
 import { useGlobalContext } from '../../src/hooks/useGlobalContext';
 import { SaveButton } from '../Inventory/components/Buttons';
-
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormLabel from '@mui/material/FormLabel';
 const fieldsObj = {
   email: 'Email',
   rif: 'RIF',
@@ -17,13 +20,17 @@ const fieldsObj = {
   password: 'Contraseña'
 };
 
-function RegisterBrain() {
+function RegisterBrain({isAdmin}) {
   const { goTo } = useGoTo();
   const { setAuthenticatedUser } = useGlobalContext();
   const formRef = useRef(null);
 
   const registerUser = async () => {
     const formData = new FormData(formRef.current);
+    if (isAdmin && !formData.get('kind_of_person')) {
+      toast.error('Selecciona el tipo de usuario');
+      return
+    }
     formData.set(
       'document',
       `${formData.get('type_of_document')}-${formData.get('document')}`
@@ -34,12 +41,16 @@ function RegisterBrain() {
     try {
       res = await api.post('/users/create-user/', formData);
       const data = await res.data;
-      if (res.status === 201) {
+      if (res.status === 201 && !isAdmin) {
         localStorage.setItem('account_token', data.access_token);
         setAuthenticatedUser(data.account);
         localStorage.setItem('account_json', JSON.stringify(data.account));
         toast.success('Usuario creado correctamente');
         goTo('/');
+      }
+      if(isAdmin){
+        toast.success('Usuario creado correctamente');
+        formRef.current.reset();
       }
     } catch (err) {
       console.log(err);
@@ -52,12 +63,12 @@ function RegisterBrain() {
 
   return (
     <>
-      <Register formRef={formRef} registerUser={registerUser} />
+      <Register formRef={formRef} registerUser={registerUser} isAdmin={isAdmin} />
     </>
   );
 }
 
-function Register({ formRef, registerUser }) {
+function Register({ formRef, registerUser, isAdmin }) {
   return (
     <article>
       <form
@@ -68,7 +79,19 @@ function Register({ formRef, registerUser }) {
           registerUser();
         }}
       >
-        <h2 className="title">Regístrate</h2>
+        <h2 className="title">{!isAdmin ? "Regístrate" : "Registra usuarios"}</h2>
+        {isAdmin && <>
+          <FormControl component="fieldset">
+          <FormLabel component="legend">Tipo de usuario</FormLabel>
+          <RadioGroup aria-label="kind_of_person" name="kind_of_person" defaultValue="client">
+            <Box sx={{display:"flex"}}>
+            <FormControlLabel value="client" control={<Radio />} label="Cliente" />
+            <FormControlLabel value="operator" control={<Radio />} label="Operador" />
+            </Box>
+          </RadioGroup>
+        </FormControl>
+        </>}
+        
         <TextField fullWidth label="E-mail" variant="outlined" name="email" required />
         
         {/* RIF - Solo numérico */}
@@ -144,7 +167,11 @@ Register.propTypes = {
   countries: PropTypes.array,
   registerUser: PropTypes.func,
   setCountryCode: PropTypes.func,
-  countryCode: PropTypes.string
+  countryCode: PropTypes.string,
+  isAdmin: PropTypes.bool
 };
 
+RegisterBrain.propTypes = {
+  isAdmin: PropTypes.bool
+};
 export default RegisterBrain;

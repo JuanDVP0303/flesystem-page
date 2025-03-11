@@ -7,6 +7,7 @@ from .serializers import BuyingRecordsSerializer
 from django.utils import timezone
 from django.db import transaction
 from .services import update_product_batches
+from users.services import log_user_action
 class BuyingRecordsViewsets(viewsets.ModelViewSet):
     queryset = BuyingRecords.objects.all()
     serializer_class = BuyingRecordsSerializer
@@ -39,6 +40,7 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
 
         buying_record.total_cost = total_cost
         buying_record.save()
+        log_user_action(request.user, "pedido", buying_record.id, f"Se ha creado el registro de pedido {buying_record.id}")
         
         
         serializer = self.get_serializer(buying_record)
@@ -77,6 +79,7 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
         else:
             buying_record.status = new_status
             buying_record.save()
+        log_user_action(request.user, "pedido", buying_record.id, f"Se ha actualizado el estado del pedido {buying_record.id} a {buying_record.get_status_display()}")
 
         serializer = self.get_serializer(buying_record)
         return Response(serializer.data)

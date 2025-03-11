@@ -717,10 +717,12 @@ export const FieldGroup = ({
           type={type ? type : numeric ? "number" : "text"}
           step={numeric ? "0.01" : ""}
           size="medium"
+          inputProps={{ min: 1 }}
           select={!!choices}
           disabled={disabled}
           value={value || null}
           multiple={multiple}
+
           name={name}
           defaultValue={defaultValue}
           placeholder={placeholder}

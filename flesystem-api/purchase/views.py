@@ -13,7 +13,7 @@ from django.db import models
 from django.db.models import Count, Sum, F
 from rest_framework.response import Response
 from django.http import HttpResponse
-
+from users.services import log_user_action
 class PurchaseViewset(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class =OrderSerializer
@@ -77,8 +77,10 @@ class PurchaseViewset(viewsets.ModelViewSet):
             product=product,
             quantity=quantity,
             price_unit=price_unit,
-            
         )
+        
+        log_user_action(request.user, "orden", None, f"Se ha creado la orden: #{order.id}")
+        
         # Crear el lote del producto
     
             
@@ -127,6 +129,8 @@ class PurchaseViewset(viewsets.ModelViewSet):
         order.real_quantity = real_quantity
         order.status = status
         order.save()
+        log_user_action(request.user, "orden", None, f"Se han actualizado el estado de la orden de ID: {order.id} a: {order.get_status_display() }")
+        
 
         return Response(
             {"message": "Estado de la orden actualizado exitosamente.", "data" : OrderSerializer(order).data},
@@ -150,9 +154,13 @@ class ProviderViewset(viewsets.ModelViewSet):
         return Provider.objects.all()
     
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-    
+        provider = super().create(request, *args, **kwargs)
+        log_user_action(request.user, "crear proveedor", None, f"Se ha creado el proveedor {provider.id}")
+        return provider
     def update(self, request, *args, **kwargs):
+        provider = self.get_object()
+        log_user_action(request.user, "actualizar proveedor", None, f"Se ha actualizado el proveedor {provider.id}")
+        
         return super().update(request, *args, **kwargs)
     
 
@@ -201,6 +209,8 @@ class ProviderViewset(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export-completed-orders')
     def export_completed_orders(self, request, id=None):
         print("ID", id)
+        log_user_action(request.user, "exportar ordenes", None, f"Se han exportado las ordenes del proveedor con id: {id}")
+        
         """
         Exporta las compras completadas de un proveedor en formato Excel.
         """

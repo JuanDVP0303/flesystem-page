@@ -11,48 +11,173 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from io import BytesIO
 import datetime
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+import pandas as pd
+from django.http import HttpResponse
+import xlsxwriter
+
+
 def generate_excel_response(df, filename):
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    """
+    Generates a visually appealing and functional Excel file response.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to export.
+        filename (str): The desired filename (without extension).
+
+    Returns:
+        HttpResponse: An HTTP response containing the Excel file.
+    """
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
 
-    # Renombrar las columnas al español
-    df = df.rename(columns={
-        'period': 'Periodo',
-        'product': 'Producto',
-        'product_price': 'Precio del Producto',
-        'total_quantity': 'Cantidad Total',
-        'total_sales': 'Ventas Totales'
-    })
+    # Rename columns to Spanish
+    df = df.rename(
+        columns={
+            'period': 'Periodo',
+            'product': 'Producto',
+            'product_price': 'Precio del Producto',
+            'total_quantity': 'Cantidad Total',
+            'total_sales': 'Ventas Totales',
+        }
+    )
 
-    # Convertir todas las columnas de fechas con zona horaria a timezone-naive
+    # Convert timezone-aware datetime columns to timezone-naive dates
     for column in df.columns:
         if pd.api.types.is_datetime64_any_dtype(df[column]):
-            if hasattr(df[column].dtype, "tz"):  # Si tiene zona horaria
+            if hasattr(df[column].dtype, "tz"):  # If timezone aware
                 df[column] = df[column].dt.tz_localize(None)
-            df[column] = df[column].dt.date
+            df[column] = df[column].dt.date  # Extract only the date part
+
     with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Tendencias de Ventas')
+        df.to_excel(
+            writer, index=False, sheet_name='Tendencias de Ventas', startrow=1
+        )  # Start writing data from row 2
+
         workbook = writer.book
         worksheet = writer.sheets['Tendencias de Ventas']
-        
-        # Formato para el encabezado
-        header_format = workbook.add_format({
-            'bold': True,
-            'text_wrap': True,
-            'valign': 'top',
-            'fg_color': '#D7E4BC',
-            'border': 1
+
+        # Define formats
+        title_format = workbook.add_format(
+            {
+                'bold': True,
+                'font_size': 18,
+                'align': 'center',
+                'valign': 'vcenter',
+                'font_color': '#375623',  # Forest Green
+            }
+        )
+
+        header_format = workbook.add_format(
+            {
+                'bold': True,
+                'text_wrap': True,
+                'valign': 'top',
+                'fg_color': '#9BBB59',  # Light Olive Green
+                'font_color': '#FFFFFF',  # White
+                'border': 1,
+                'align': 'center',
+            }
+        )
+
+        date_format = workbook.add_format({'num_format': 'dd/mm/yyyy'})  # Date format
+        currency_format = workbook.add_format(
+            {'num_format': '$#,##0.00'}
+        )  # Currency format
+
+        # Conditional formatting for top 10 sales
+        top10_format = workbook.add_format(
+            {'bg_color': '#FFC7CE', 'font_color': '#9C0006'}
+        )  # Light red fill with dark red text
+
+        # Total Format
+        total_format = workbook.add_format(
+            {
+                'bold': True,
+                'fg_color': '#F2F2F2',  # Light Gray
+                'border': 1,
+                'align': 'right',
+            }
+        )
+
+        # Add a title
+        worksheet.merge_range('A1:E1', 'Tendencias de Ventas de Productos', title_format)
+
+        # Apply header format
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(1, col_num, value, header_format)  # Header on row 2
+
+        # Apply formats to data
+        for column in df.columns:
+            col_idx = df.columns.get_loc(column)
+            for row_num in range(2, len(df) + 2):  # Start from row 2 (data start)
+                cell_value = df.iloc[row_num - 2, col_idx]
+                if pd.api.types.is_datetime64_any_dtype(df[column]):
+                    worksheet.write_datetime(
+                        row_num, col_idx, cell_value, date_format
+                    )  # Write as datetime
+                elif column == 'Precio del Producto' or column == 'Ventas Totales':
+                    worksheet.write_number(
+                        row_num, col_idx, cell_value, currency_format
+                    )  # Write as currency
+                else:
+                    worksheet.write(row_num, col_idx, cell_value)
+
+        # Conditional Formatting (Top 10 Sales)
+        worksheet.conditional_format(
+            2,
+            4,
+            len(df) + 1,
+            4,
+            {
+                'type': 'top',
+                'value': '10',
+                'format': top10_format,
+                'criteria': '=',
+            },
+        )  # Apply to 'Ventas Totales' column
+
+        # Autofit column widths
+        for column in df:
+            column_length = max(
+                df[column].astype(str).map(len).max(), len(column)
+            )  # Get max length from column data
+            col_idx = df.columns.get_loc(column)
+            worksheet.set_column(col_idx, col_idx, column_length + 2)  # Add some padding
+
+        # Add a total row
+        num_rows, num_cols = df.shape
+        worksheet.write(
+            num_rows + 2, 0, "Total", total_format
+        )  # Add total label in the first column
+
+        # Add total sales
+        total_sales = df['Ventas Totales'].sum()
+        worksheet.write_number(
+            num_rows + 2, 4, total_sales, currency_format
+        )  # Use currency format for total sales
+
+        # Add a chart
+        chart = workbook.add_chart({'type': 'column'})
+
+        # Configure the series of the chart from the dataframe data.
+        chart.add_series({
+            'name':       '=Tendencias de Ventas!$E$2',
+            'categories': '=Tendencias de Ventas!$A$3:$A$' + str(len(df) + 2),
+            'values':     '=Tendencias de Ventas!$E$3:$E$' + str(len(df) + 2),
         })
 
-        # Aplicar formato al encabezado
-        for col_num, value in enumerate(df.columns.values):
-            worksheet.write(0, col_num, value, header_format)
-        
-        # Autoajustar el ancho de las columnas
-        for column in df:
-            column_length = max(df[column].astype(str).map(len).max(), len(column))
-            col_idx = df.columns.get_loc(column)
-            writer.sheets['Tendencias de Ventas'].set_column(col_idx, col_idx, column_length)
+        # Add a chart title and axis labels.
+        chart.set_title({'name': 'Tendencias de Ventas'})
+        chart.set_x_axis({'name': 'Periodo'})
+        chart.set_y_axis({'name': 'Ventas Totales'})
+
+        # Insert the chart into the worksheet.
+        worksheet.insert_chart('G2', chart)
 
     return response
 
@@ -142,3 +267,36 @@ def generate_pdf_response(data, filename):
     return response
 
 
+
+
+def generate_pdf_response(data, filename):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
+
+    # Cargar el template HTML
+    template = get_template('sales_reports.html')  # Asegúrate de que el nombre del template sea correcto
+
+    # Crear el contexto con los datos
+    context = {
+        'data': data,
+        'now': datetime.datetime.now(),
+    }
+
+    # Renderizar el template con el contexto
+    html = template.render(context)
+
+    # Crear el buffer para el PDF
+    buffer = BytesIO()
+
+    # Generar el PDF usando xhtml2pdf
+    pdf_status = pisa.CreatePDF(html, dest=buffer)
+
+    # Si hay errores, devuelve una respuesta de error
+    if not pdf_status.err:
+        # Preparar la respuesta HTTP con el PDF
+        pdf = buffer.getvalue()
+        buffer.close()
+        response.write(pdf)
+        return response
+    else:
+        return HttpResponse(f"Error al generar PDF: {pdf_status.err}", status=500)
