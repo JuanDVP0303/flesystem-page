@@ -17,7 +17,6 @@ import pandas as pd
 from django.http import HttpResponse
 import xlsxwriter
 
-
 def generate_excel_response(df, filename):
     """
     Generates a visually appealing and functional Excel file response.
@@ -55,8 +54,8 @@ def generate_excel_response(df, filename):
 
     with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
         df.to_excel(
-            writer, index=False, sheet_name='Tendencias de Ventas', startrow=1
-        )  # Start writing data from row 2
+            writer, index=False, sheet_name='Tendencias de Ventas', startrow=3
+        )  # Start writing data from row 4
 
         workbook = writer.book
         worksheet = writer.sheets['Tendencias de Ventas']
@@ -68,7 +67,7 @@ def generate_excel_response(df, filename):
                 'font_size': 18,
                 'align': 'center',
                 'valign': 'vcenter',
-                'font_color': '#375623',  # Forest Green
+                'font_color': '#0c8f00',  #Black
             }
         )
 
@@ -104,18 +103,44 @@ def generate_excel_response(df, filename):
             }
         )
 
-        # Add a title
-        worksheet.merge_range('A1:E1', 'Tendencias de Ventas de Productos', title_format)
+        # Background format for the first three rows
+        background_format = workbook.add_format(
+            {
+                'fg_color': '#1F4E78',  # Dark Blue
+                'border': 0,
+            }
+        )
+
+        # Apply background color to the first three rows
+        worksheet.set_row(0, 20, background_format)
+        worksheet.set_row(1, 20, background_format)
+        worksheet.set_row(2, 20, background_format)
+        worksheet.set_row(3, 20, background_format)
+
+        # Insert the image in the first row
+        worksheet.insert_image('A1', 'media/images/Logo.png', {'x_scale': 0.8, 'y_scale': 0.8})
+        
+        rif_format = workbook.add_format({
+            'bold': True,
+            'font_size': 12,
+            'align': 'center',
+            'valign': 'vcenter',
+            'fg_color': '#1F4E78',  # Dark Blue
+            'font_color': '#FFFFFF',  # White
+        })
+        worksheet.merge_range('A2:G2', 'RIF: J-075199600', rif_format)  # RIF in row 3
+        # Add a title in the second row
+        worksheet.merge_range('A4:E4', 'Tendencias de Ventas de Productos', title_format)
 
         # Apply header format
         for col_num, value in enumerate(df.columns.values):
-            worksheet.write(1, col_num, value, header_format)  # Header on row 2
+            worksheet.write(5, col_num, value, header_format)  # Header on row 4
 
         # Apply formats to data
         for column in df.columns:
             col_idx = df.columns.get_loc(column)
-            for row_num in range(2, len(df) + 2):  # Start from row 2 (data start)
-                cell_value = df.iloc[row_num - 2, col_idx]
+            for row_num in range(4, len(df) + 4):  # Start from row 4 (data start)
+                cell_value = df.iloc[row_num - 4, col_idx]
                 if pd.api.types.is_datetime64_any_dtype(df[column]):
                     worksheet.write_datetime(
                         row_num, col_idx, cell_value, date_format
@@ -129,9 +154,9 @@ def generate_excel_response(df, filename):
 
         # Conditional Formatting (Top 10 Sales)
         worksheet.conditional_format(
-            2,
             4,
-            len(df) + 1,
+            4,
+            len(df) + 3,
             4,
             {
                 'type': 'top',
@@ -152,13 +177,13 @@ def generate_excel_response(df, filename):
         # Add a total row
         num_rows, num_cols = df.shape
         worksheet.write(
-            num_rows + 2, 0, "Total", total_format
+            num_rows + 4, 0, "Total", total_format
         )  # Add total label in the first column
 
         # Add total sales
         total_sales = df['Ventas Totales'].sum()
         worksheet.write_number(
-            num_rows + 2, 4, total_sales, currency_format
+            num_rows + 4, 4, total_sales, currency_format
         )  # Use currency format for total sales
 
         # Add a chart
@@ -166,9 +191,9 @@ def generate_excel_response(df, filename):
 
         # Configure the series of the chart from the dataframe data.
         chart.add_series({
-            'name':       '=Tendencias de Ventas!$E$2',
-            'categories': '=Tendencias de Ventas!$A$3:$A$' + str(len(df) + 2),
-            'values':     '=Tendencias de Ventas!$E$3:$E$' + str(len(df) + 2),
+            'name':       '=Tendencias de Ventas!$E$4',
+            'categories': '=Tendencias de Ventas!$A$5:$A$' + str(len(df) + 4),
+            'values':     '=Tendencias de Ventas!$E$5:$E$' + str(len(df) + 4),
         })
 
         # Add a chart title and axis labels.
@@ -177,10 +202,9 @@ def generate_excel_response(df, filename):
         chart.set_y_axis({'name': 'Ventas Totales'})
 
         # Insert the chart into the worksheet.
-        worksheet.insert_chart('G2', chart)
+        worksheet.insert_chart('G4', chart)
 
     return response
-
 def generate_csv_response(df, filename):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'

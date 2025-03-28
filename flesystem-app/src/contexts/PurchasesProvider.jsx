@@ -29,6 +29,10 @@ const PurchasesProvider = ({ children }) => {
             }
         }).catch(err => {
             console.log(err)
+            const data = err.data
+            for (const key in data) {
+                toast.error(`${key}: ${data[key]}`)
+            }
             toast.error("Hubo un error al crear el proveedor :(")
         })
     }
@@ -77,6 +81,10 @@ const PurchasesProvider = ({ children }) => {
             }
         }).catch(err => {
             console.log(err)
+            const data = err.data
+            for (const key in data) {
+                toast.error(`${key}: ${data[key]}`)
+            }
             toast.error("Hubo un error al editar el proveedor :(")
         })
     }

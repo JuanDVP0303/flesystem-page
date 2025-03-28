@@ -74,6 +74,34 @@ const Admin = () => {
     getAuditLog()
   }, [])
 
+
+  const downloadManual = async (type) => {
+    try {
+      let manualURL = type === "admin" ? "/media/manuals/ManualAdministradorFlesystem.pdf" : "/media/manuals/ManualOperadorFlesystem.pdf";
+      const mediaUrl = import.meta.VITE_API_URL+manualURL
+      console.log(mediaUrl)
+      const response = await api.get(manualURL , {
+        responseType: 'blob', // Necesario para manejar archivos binarios como PDF
+      });
+      if (response.status !== 200) {
+          toast.error('Error al descargar el manual');
+          return
+        }
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `manual_${type}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error('Error al descargar el manual :/');
+      console.error('Error al descargar el manual:', error);
+    }
+  }
+  
+
   console.log(auditLog)
   // const stats = buyingRecords.reduce((acc, order) => {
   //   acc[order.status.toLowerCase()]++;
@@ -124,7 +152,8 @@ const Admin = () => {
       <MiniCard className={"max-w-full flex"}>
         <Box sx={{marginBottom:5}}>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p>Esta es la sección de administración</p>
+          <p>Esta es la sección de {
+            authenticatedUser.is_superuser ? "administrador" : "operador"}</p>
         </Box>
         <Box sx={{
           display:"flex",
@@ -142,6 +171,34 @@ const Admin = () => {
               Exportar Base de Datos
             </Button>
           )}
+          {
+            authenticatedUser.is_superuser ? <>
+              <Button
+              sx={{marginLeft:2}}
+              startIcon={<DownloadIcon />}
+              variant="contained"
+              color="success"
+              onClick={() => {
+                downloadManual("admin")
+              }}
+              >
+                Descargar Manual de Administrador
+              </Button>
+            </>:
+            <>
+              <Button
+              onClick={() => {
+                downloadManual("admin")
+
+              }}
+              variant="contained"
+              color="success"
+              startIcon={<DownloadIcon />}
+              >
+                Descargar Manual de Operador
+              </Button>
+            </>
+          }
         </Box>
         <Box sx={{display:"flex", gap:5}}>
           <Box sx={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "10px", flex:1, backgroundColor: "#fdfdfd"}}>

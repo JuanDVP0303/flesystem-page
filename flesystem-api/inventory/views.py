@@ -400,68 +400,92 @@ class ProductsViewset(viewsets.ModelViewSet):
             response['Content-Disposition'] = f'attachment; filename="productos_disponibles.xlsx"'
 
             with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False, sheet_name='Productos Disponibles', startrow=1)
-
+                df.to_excel(writer, index=False, sheet_name='Productos Disponibles', startrow=3)  # Start from row 4
                 workbook = writer.book
                 worksheet = writer.sheets['Productos Disponibles']
 
-                # Formatos personalizados
+                # Formato para el título
                 title_format = workbook.add_format({
                     'bold': True,
                     'font_size': 18,
                     'align': 'center',
                     'valign': 'vcenter',
-                    'font_color': '#375623',  # Verde oscuro
+                    'fg_color': '#1F4E78',  # Dark Blue
+                    'font_color': '#FFFFFF',  # White
                 })
 
+
+                # Formato para el encabezado
                 header_format = workbook.add_format({
                     'bold': True,
                     'text_wrap': True,
                     'valign': 'top',
-                    'fg_color': '#9BBB59',  # Verde oliva claro
-                    'font_color': '#FFFFFF',  # Blanco
+                    'fg_color': '#9BBB59',  # Light Olive Green
+                    'font_color': '#FFFFFF',  # White
                     'border': 1,
                     'align': 'center',
                 })
 
-                currency_format = workbook.add_format({'num_format': '$#,##0.00'})  # Formato moneda
+                # Formato de fondo azul oscuro para las primeras tres filas
+                background_format = workbook.add_format({
+                    'fg_color': '#1F4E78',  # Dark Blue
+                    'border': 0,
+                })
 
-                # Agregar título al archivo Excel
-                worksheet.merge_range('A1:G1', 'Productos Disponibles en Inventario', title_format)
+                # Aplicar fondo azul oscuro a las primeras tres filas
+                worksheet.set_row(0, 20, background_format)
+                worksheet.set_row(1, 20, background_format)
+                worksheet.set_row(2, 20, background_format)
 
+                # Insertar la imagen en la primera fila
+                worksheet.insert_image('A1', 'media/images/Logo.png', {'x_scale': 0.5, 'y_scale': 0.5})
+
+                # Agregar un título en la segunda fila
+                worksheet.merge_range('A3:G3', 'Productos Disponibles en Inventario', title_format)
+                
+                rif_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 12,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'fg_color': '#1F4E78',  # Dark Blue
+                    'font_color': '#FFFFFF',  # White
+                })
+                worksheet.merge_range('A2:G2', 'RIF: J-075199600', rif_format)  # RIF in row 3
                 # Aplicar formato al encabezado
                 for col_num, value in enumerate(df.columns.values):
-                    worksheet.write(1, col_num, value, header_format)  # Encabezado en la fila 2
+                    worksheet.write(3, col_num, value, header_format)  # Header on row 4
 
                 # Ajustar automáticamente el ancho de las columnas
                 for column in df:
                     column_length = max(df[column].astype(str).map(len).max(), len(column))
                     col_idx = df.columns.get_loc(column)
-                    worksheet.set_column(col_idx, col_idx, column_length + 2)  # Agregar un poco de espacio extra
+                    worksheet.set_column(col_idx, col_idx, column_length + 2)  # Add some padding
 
                 # Aplicar formato a las celdas de datos (ejemplo: precios como moneda)
+                currency_format = workbook.add_format({'num_format': '$#,##0.00'})  # Currency format
                 for col_num, column in enumerate(df.columns):
                     if column == "Precio de Venta":
-                        for row_num in range(2, len(df) + 2):  # Los datos comienzan en la fila 3 (índice base 0)
-                            worksheet.write_number(row_num, col_num, df.iloc[row_num - 2][column], currency_format)
+                        for row_num in range(4, len(df) + 4):  # Data starts from row 4
+                            worksheet.write_number(row_num, col_num, df.iloc[row_num - 4][column], currency_format)
 
                 # Crear una gráfica básica (ejemplo: Cantidad Total vs Stock Mínimo)
-                chart = workbook.add_chart({'type': 'column'})
+                # # chart = workbook.add_chart({'type': 'column'})
 
-                chart.add_series({
-                    'name':       '=Productos Disponibles!$B$2',  # Título de la serie (Cantidad Total)
-                    'categories': f'=Productos Disponibles!$A$3:$A${len(df) + 2}',  # Categorías (Productos)
-                    'values':     f'=Productos Disponibles!$B$3:$B${len(df) + 2}',  # Valores (Cantidad Total)
-                    'fill':       {'color': '#4F81BD'},  # Color de las barras
-                    'data_labels': {'value': True},     # Mostrar valores en las barras
-                })
+                # # chart.add_series({
+                # #     'name': '=Productos Disponibles!$B$4',  # Title of the series (Cantidad Total)
+                # #     'categories': f'=Productos Disponibles!$A$5:$A${len(df) + 3}',  # Categories (Productos)
+                # #     'values': f'=Productos Disponibles!$B$5:$A${len(df) + 3}',  # Values (Cantidad Total)
+                # #     'fill': {'color': '#4F81BD'},  # Bar color
+                # #     'data_labels': {'value': True},  # Show values on bars
+                # # })
 
-                chart.set_title({'name': 'Cantidad Total de Productos'})
-                chart.set_x_axis({'name': 'Producto'})
-                chart.set_y_axis({'name': 'Cantidad Total'})
+                # # chart.set_title({'name': 'Cantidad Total de Productos'})
+                # # chart.set_x_axis({'name': 'Producto'})
+                # # chart.set_y_axis({'name': 'Cantidad Total'})
 
-                # Insertar la gráfica en la hoja de cálculo
-                worksheet.insert_chart('I5', chart)
+                # # Insertar la gráfica en la hoja de cálculo
+                # worksheet.insert_chart('I5', chart)
 
             return response
 

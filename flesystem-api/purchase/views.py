@@ -155,6 +155,7 @@ class ProviderViewset(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         provider = super().create(request, *args, **kwargs)
+        provider = Provider.objects.get(id=provider.data['id'])
         log_user_action(request.user, "crear proveedor", None, f"Se ha creado el proveedor {provider.id}")
         return provider
     def update(self, request, *args, **kwargs):
@@ -205,7 +206,6 @@ class ProviderViewset(viewsets.ModelViewSet):
         products = Product.objects.filter(provider=provider)
         data = ProductSerializer(products, many=True).data
         return Response(data)
-    
     @action(detail=True, methods=['get'], url_path='export-completed-orders')
     def export_completed_orders(self, request, id=None):
         print("ID", id)
@@ -215,64 +215,117 @@ class ProviderViewset(viewsets.ModelViewSet):
         Exporta las compras completadas de un proveedor en formato Excel.
         """
         try:
-            # Filtrar las órdenes completadas para el proveedor especificado
-            orders = Order.objects.filter(provider__id=id, status='COMPLETED').annotate(
-                product_name=F('product__name')
-            ).values(
-                'id', 'product_name', 'quantity', 'price_unit', 'total_cost', 'purchase_date'            )
+                # Filtrar las órdenes completadas para el proveedor especificado
+                orders = Order.objects.filter(provider__id=id, status='COMPLETED').annotate(
+                    product_name=F('product__name')
+                ).values(
+                    'id', 'product_name', 'quantity', 'price_unit', 'total_cost', 'purchase_date'
+                )
 
-            # Crear un DataFrame con los datos
-            df = pd.DataFrame(list(orders))
+                # Crear un DataFrame con los datos
+                df = pd.DataFrame(list(orders))
 
-            # Verificar si hay datos para exportar
-            # if df.empty:
-            #     return Response({"detail": "No hay compras completadas para este proveedor."}, status=404)
+                # Verificar si hay datos para exportar
+                if df.empty:
+                    return Response({"detail": "No hay compras completadas para este proveedor."}, status=404)
 
-            # Renombrar las columnas al español
-            df = df.rename(columns={
-                'id': 'ID de Compra',
-                'product_name': 'Producto',
-                'quantity': 'Cantidad',
-                'price_unit': 'Precio Unitario',
-                'total_cost': 'Costo Total',
-                'purchase_date': 'Fecha de Compra',
-                # 'created_at': 'Fecha de Creación'
-            })
-
-            # Convertir las fechas a formato legible (sin hora)
-            for column in ['Fecha de Compra']:
-                if column in df.columns:
-                    df[column] = pd.to_datetime(df[column]).dt.date
-
-            # Generar el archivo Excel
-            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response['Content-Disposition'] = f'attachment; filename="compras_completadas_proveedor_{id}.xlsx"'
-
-            with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False, sheet_name='Compras Completadas')
-                workbook = writer.book
-                worksheet = writer.sheets['Compras Completadas']
-
-                # Formato para el encabezado
-                header_format = workbook.add_format({
-                    'bold': True,
-                    'text_wrap': True,
-                    'valign': 'top',
-                    'fg_color': '#D7E4BC',
-                    'border': 1
+                # Renombrar las columnas al español
+                df = df.rename(columns={
+                    'id': 'ID de Compra',
+                    'product_name': 'Producto',
+                    'quantity': 'Cantidad',
+                    'price_unit': 'Precio Unitario',
+                    'total_cost': 'Costo Total',
+                    'purchase_date': 'Fecha de Compra',
                 })
 
-                # Aplicar formato al encabezado
-                for col_num, value in enumerate(df.columns.values):
-                    worksheet.write(0, col_num, value, header_format)
+                # Convertir las fechas a formato legible (sin hora)
+                for column in ['Fecha de Compra']:
+                    if column in df.columns:
+                        df[column] = pd.to_datetime(df[column]).dt.date
 
-                # Ajustar automáticamente el ancho de las columnas
-                for column in df:
-                    column_length = max(df[column].astype(str).map(len).max(), len(column))
-                    col_idx = df.columns.get_loc(column)
-                    worksheet.set_column(col_idx, col_idx, column_length)
+                # Generar el archivo Excel
+                response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                response['Content-Disposition'] = f'attachment; filename="compras_completadas_proveedor_{id}.xlsx"'
 
-            return response
+                with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Compras Completadas', startrow=3)  # Start from row 4
+                    workbook = writer.book
+                    worksheet = writer.sheets['Compras Completadas']
 
+                    # Formato para el encabezado
+                    header_format = workbook.add_format({
+                        'bold': True,
+                        'text_wrap': True,
+                        'valign': 'top',
+                        'fg_color': '#D7E4BC',
+                        'border': 1
+                    })
+
+                    # Formato para el título
+                    title_format = workbook.add_format({
+                        'bold': True,
+                        'font_size': 18,
+                        'align': 'center',
+                        'valign': 'vcenter',
+                        'font_color': '#0c8f00',  # White,
+                        'fg_color': '#1F4E78',  # Dark Blue
+                    })
+
+                    # Formato de fondo azul oscuro para las primeras tres filas
+                    background_format = workbook.add_format({
+                        'fg_color': '#1F4E78',  # Dark Blue
+                        'border': 0,
+                    })
+
+                    # Aplicar fondo azul oscuro a las primeras tres filas
+                    worksheet.set_row(0, 20, background_format)
+                    worksheet.set_row(1, 20, background_format)
+                    worksheet.set_row(2, 20, background_format)
+
+                    # Insertar la imagen en la primera fila
+                    worksheet.insert_image('A1', 'media/images/Logo.png', {'x_scale': 0.5, 'y_scale': 0.5})
+                    
+                    rif_format = workbook.add_format({
+                        'bold': True,
+                        'font_size': 12,
+                        'align': 'center',
+                        'valign': 'vcenter',
+                        'fg_color': '#1F4E78',  # Dark Blue
+                        'font_color': '#FFFFFF',  # White
+                    })
+                    worksheet.merge_range('A2:G2', 'RIF: J-075199600', rif_format)  # RIF in row 3
+                    # Agregar un título en la segunda fila
+                    worksheet.merge_range('A3:E3', 'Compras Completadas del Proveedor', title_format)
+
+                    # Aplicar formato al encabezado
+                    for col_num, value in enumerate(df.columns.values):
+                        worksheet.write(3, col_num, value, header_format)  # Header on row 4
+
+                    # Ajustar automáticamente el ancho de las columnas
+                    for column in df:
+                        column_length = max(df[column].astype(str).map(len).max(), len(column))
+                        col_idx = df.columns.get_loc(column)
+                        worksheet.set_column(col_idx, col_idx, column_length)
+
+                    # Agregar un gráfico
+                    chart = workbook.add_chart({'type': 'column'})
+
+                    # Configurar la serie del gráfico desde los datos del DataFrame.
+                    chart.add_series({
+                        'name': '=Compras Completadas!$E$4',
+                        'categories': '=Compras Completadas!$B$5:$B$' + str(len(df) + 3),
+                        'values': '=Compras Completadas!$E$5:$E$' + str(len(df) + 3),
+                    })
+
+                    # Agregar un título y etiquetas a los ejes del gráfico.
+                    chart.set_title({'name': 'Costo Total por Producto'})
+                    chart.set_x_axis({'name': 'Producto'})
+                    chart.set_y_axis({'name': 'Costo Total'})
+
+                    # Insertar el gráfico en la hoja de trabajo.
+                    worksheet.insert_chart('G4', chart)
+
+                return response
         except Exception as e:
             return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
