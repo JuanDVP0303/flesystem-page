@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Account
+from .models import Account, AuditLog
 from .serializers import AccountSerializer, AuditLogSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -14,6 +14,7 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import user_passes_test
 import subprocess
 import os
+import pandas as pd
 from django.utils import timezone
 
 from rest_framework import viewsets
@@ -183,11 +184,119 @@ class AdminViewset(viewsets.ModelViewSet):
         print("REQUEST", request.user)
         if not request.user.is_superuser:
             return Response({"error": "No tienes permisos para realizar esta acción"}, status=status.HTTP_403_FORBIDDEN)
-        from .models import AuditLog
         audit_log = AuditLog.objects.all().order_by("-timestamp")
         serializer = AuditLogSerializer(audit_log, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
+    # Dentro de tu viewset
+   
+    @action(detail=False, methods=['get'], url_path='export-audit-logs', url_name='export-audit-logs')
+    def export_audits(self, request, *args, **kwargs):
+        print("REQUEST", request.user)
+        
+        if not request.user.is_superuser:
+            return Response({"error": "No tienes permisos para realizar esta acción"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            # Obtener todos los registros de auditoría
+            audit_logs = AuditLog.objects.all().order_by("-timestamp").values(
+                'user__email', 'action', 'item_id', 'description', 'timestamp'
+            )
+
+
+            # Crear un DataFrame con los datos
+            df = pd.DataFrame(list(audit_logs))
+
+            print("DF", df.head())
+            # Verificar si hay datos para exportar
+            # if df.empty:
+            #     return Response({"detail": "No hay registros de auditoría."}, status=404)
+
+            # Renombrar las columnas al español
+            df = df.rename(columns={
+                # 'id': 'ID de Registro',
+                'user__email': 'Usuario',
+                'action': 'Acción',
+                'item_id': 'ID del Elemento',
+                'description': 'Descripción',
+                'timestamp': 'Fecha y Hora',
+            })
+
+            # Convertir las fechas a formato legible (sin hora)
+            for column in ['Fecha y Hora']:
+                if column in df.columns:
+                    df[column] = pd.to_datetime(df[column]).dt.strftime('%Y-%m-%d %H:%M')
+
+            # Generar el archivo Excel
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename="registros_de_auditoria.xlsx"'
+
+            with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Registros de Auditoría', startrow=3)  # Start from row 4
+                workbook = writer.book
+                worksheet = writer.sheets['Registros de Auditoría']
+
+                # Formato para el encabezado
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC',
+                    'border': 1
+                })
+
+                # Formato para el título
+                title_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 18,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'font_color': '#0c8f00',  # White,
+                    'fg_color': '#1F4E78',  # Dark Blue
+                })
+
+                # Formato de fondo azul oscuro para las primeras tres filas
+                background_format = workbook.add_format({
+                    'fg_color': '#1F4E78',  # Dark Blue
+                    'border': 0,
+                })
+
+                # Aplicar fondo azul oscuro a las primeras tres filas
+                worksheet.set_row(0, 20, background_format)
+                worksheet.set_row(1, 20, background_format)
+                worksheet.set_row(2, 20, background_format)
+
+                # Insertar un título en la segunda fila
+                worksheet.merge_range('A3:G3', 'Registros de Auditoría', title_format)
+                worksheet.insert_image('A1', 'media/images/Logo.png', {'x_scale': 0.5, 'y_scale': 0.5})
+                
+                rif_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 12,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'fg_color': '#1F4E78',  # Dark Blue
+                    'font_color': '#FFFFFF',  # White
+                })
+                worksheet.merge_range('A2:G2', 'RIF: J-075199600', rif_format)  # RIF in row 3
+                # Agregar un título en la segunda fila
+
+                # Aplicar formato al encabezado
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(3, col_num, value, header_format)  # Header on row 4
+
+                # Ajustar automáticamente el ancho de las columnas
+                for column in df:
+                    column_length = max(df[column].astype(str).map(len).max(), len(column))
+                    col_idx = df.columns.get_loc(column)
+                    worksheet.set_column(col_idx, col_idx, column_length)
+            log_user_action(request.user, "exportar auditoria", None, f"Se han exportado todas las auditorias")
+            return response
+        except Exception as e:
+            print("ERROR", str(e))
+            return HttpResponse({"error": "..."}, status=500, content_type="application/json")
+
+
 class TokenRefreshCustomView(TokenRefreshView):
     pass
 

@@ -205,6 +205,8 @@ def generate_excel_response(df, filename):
         worksheet.insert_chart('G4', chart)
 
     return response
+
+
 def generate_csv_response(df, filename):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'

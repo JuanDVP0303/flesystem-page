@@ -142,7 +142,6 @@ class PurchaseViewset(viewsets.ModelViewSet):
         orders = Order.objects.all().order_by('-created_at')
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
-    
 
         
 class ProviderViewset(viewsets.ModelViewSet):
@@ -209,7 +208,6 @@ class ProviderViewset(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export-completed-orders')
     def export_completed_orders(self, request, id=None):
         print("ID", id)
-        log_user_action(request.user, "exportar ordenes", None, f"Se han exportado las ordenes del proveedor con id: {id}")
         
         """
         Exporta las compras completadas de un proveedor en formato Excel.
@@ -325,6 +323,7 @@ class ProviderViewset(viewsets.ModelViewSet):
 
                     # Insertar el gráfico en la hoja de trabajo.
                     worksheet.insert_chart('G4', chart)
+                log_user_action(request.user, "exportar ordenes", None, f"Se han exportado las ordenes del proveedor con id: {id}")
 
                 return response
         except Exception as e:

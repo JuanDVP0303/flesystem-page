@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { MiniCard } from "../Inventory/Inventory";
-import { Box, Button, Dialog, IconButton, List, ListItem, ListItemText, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Typography } from "@mui/material";
+import { Box, Button, Dialog, FormControl, formControlClasses, IconButton, InputLabel, List, ListItem, ListItemText, MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Typography } from "@mui/material";
 import { useAdminContext } from "../hooks/useAdminContext";
 import WarningIcon from '@mui/icons-material/Warning';
 import { usePurchaseContext } from "../hooks/usePurchasesContext";
@@ -35,6 +35,20 @@ const Admin = () => {
     }
   }
 
+
+  const downloadAuditLog = async () => {
+    try {
+        const response = await api.get(`/users/admin/export-audit-logs/`, { responseType: "blob" });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `audit_logs.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+    } catch (error) {
+        console.error("Error al exportar las compras completadas:", error);
+    }
+  }
 
   const exportDatabase = async () => {
     try {
@@ -99,6 +113,21 @@ const Admin = () => {
       toast.error('Error al descargar el manual :/');
       console.error('Error al descargar el manual:', error);
     }
+  }
+
+  const downloadLowStockProducts = async  () => {
+    try {
+      const response = await api.get('/inventory/reports/low-stock/', { responseType: "blob" });
+      // const response = await api.get(`/users/admin/export-audit-logs/`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `low_stock_products.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+  } catch (error) {
+      console.error("Error al exportar las compras completadas:", error);
+  }
   }
   
 
@@ -203,6 +232,11 @@ const Admin = () => {
         <Box sx={{display:"flex", gap:5}}>
           <Box sx={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "10px", flex:1, backgroundColor: "#fdfdfd"}}>
             <Typography variant="h6">Productos con stock bajo</Typography>
+            <Button variant="contained" color="success" onClick={downloadLowStockProducts} 
+            sx={{marginBottom:2, marginTop:2}} startIcon={<DownloadIcon />}
+            >
+              Descargar los productos con stock bajo
+            </Button>
             <List>
               {minStockProducts.map((product) => (
                 <ListItem key={product.id} sx={{border: "1px solid #ccc", borderRadius: "10px", margin: "1rem 0", boxShadow: "1px 1px 5px #ccc", backgroundColor:"white"}}>
@@ -232,6 +266,11 @@ const Admin = () => {
               fontWeight:"bold",
               color:"green"
             }} >Auditoría</Typography>
+            <Button variant="contained" color="success" onClick={downloadAuditLog}
+            sx={{marginBottom:2, marginTop:2}} startIcon={<DownloadIcon />}
+            >
+              Descargar todos los registros de auditoría
+            </Button>
             <AuditTable auditLogs={auditLog} />
           </Box>
           <Box sx={{display:"flex", gap:5, marginTop:5}}>
@@ -246,11 +285,13 @@ const Admin = () => {
     </Box>
   );
 };
-
 const AuditTable = ({ auditLogs }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [selectedAction, setSelectedAction] = useState('all');
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -258,31 +299,92 @@ const AuditTable = ({ auditLogs }) => {
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // Reset to the first page when changing rows per page
+    setPage(0);
   };
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
-    setPage(0); // Reset to the first page when searching
+    setPage(0);
   };
 
-  const filteredAuditLogs = auditLogs.filter(log =>
-    log.user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleStartDateChange = (event) => {
+    setStartDate(event.target.value);
+    setPage(0);
+  };
+
+  const handleEndDateChange = (event) => {
+    setEndDate(event.target.value);
+    setPage(0);
+  };
+
+  const handleActionChange = (event) => {
+    setSelectedAction(event.target.value);
+    setPage(0);
+  };
+
+  // Obtener acciones únicas
+
+  const filteredAuditLogs = auditLogs.filter(log => {
+    const matchesEmail = log.user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesAction = selectedAction === 'all' || log.action === selectedAction;
+    
+    // Validación de fecha
+    const logDate = moment(log.timestamp);
+    const matchesDate = (!startDate || logDate.isSameOrAfter(moment(startDate))) && 
+                       (!endDate || logDate.isSameOrBefore(moment(endDate)));
+
+    return matchesEmail && matchesAction && matchesDate;
+  });
+
+  const uniqueActions = [...new Set(filteredAuditLogs.map(log => log.action))];
 
   const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - auditLogs.length) : 0;
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredAuditLogs.length) : 0;
 
   return (
     <Box>
-      <TextField
-        label="Buscar por email"
-        variant="outlined"
-        size="small"
-        value={searchTerm}
-        onChange={handleSearchChange}
-        sx={{ mb: 2 }}
-      />
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+        <TextField
+          label="Buscar por email"
+          variant="outlined"
+          size="small"
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+        
+        <TextField
+          label="Fecha inicial"
+          type="datetime-local"
+          InputLabelProps={{ shrink: true }}
+          size="small"
+          onChange={handleStartDateChange}
+          sx={{ width: 220 }}
+        />
+        
+        <TextField
+          label="Fecha final"
+          type="datetime-local"
+          InputLabelProps={{ shrink: true }}
+          size="small"
+          onChange={handleEndDateChange}
+          sx={{ width: 220 }}
+        />
+        
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Acción</InputLabel>
+          <Select
+            value={selectedAction}
+            label="Acción"
+            onChange={handleActionChange}
+          >
+            <MenuItem value="all">Todas</MenuItem>
+            {uniqueActions.map(action => (
+              <MenuItem key={action} value={action}>{action}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
@@ -335,7 +437,6 @@ const AuditTable = ({ auditLogs }) => {
     </Box>
   );
 };
-
 AuditTable.propTypes = {
   auditLogs: []
 }

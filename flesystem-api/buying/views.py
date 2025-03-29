@@ -8,6 +8,12 @@ from django.utils import timezone
 from django.db import transaction
 from .services import update_product_batches
 from users.services import log_user_action
+import pandas as pd
+from django.http import HttpResponse
+from django.db.models import F
+from purchase.models import Order
+from purchase.serializers import OrderSerializer
+
 class BuyingRecordsViewsets(viewsets.ModelViewSet):
     queryset = BuyingRecords.objects.all()
     serializer_class = BuyingRecordsSerializer
@@ -83,3 +89,119 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(buying_record)
         return Response(serializer.data)
+    
+    
+    @action(detail=False, methods=['get'], url_path='export-buying')
+    def export_orders(self, request):
+        """
+        Exporta las órdenes de compra en formato Excel.
+        """
+        try:
+            orders = BuyingRecords.objects.all().values(
+                'created_at',
+                'purchase_date',
+                'status',
+                'total_cost',
+                'user__email'
+            )
+            
+            #Hacer un annotate para traducir los estatus a español
+            # Crear un DataFrame con los datos
+            df = pd.DataFrame(list(orders))
+
+            # Verificar si hay datos para exportar
+            if df.empty:
+                return Response({"detail": "No hay órdenes para exportar."}, status=404)
+
+            # Renombrar las columnas al español
+            df.rename(columns={
+                'created_at': 'Fecha de Creación',
+                'purchase_date': 'Fecha de Compra',
+                'status': 'Estado',
+                'total_cost': 'Costo Total',
+                'user__email': 'Usuario'
+            }, inplace=True)
+
+            # Convertir las fechas a formato legible (sin hora)
+            for column in ['Fecha de Compra', 'Fecha de Creación']:
+                if column in df.columns:
+                    df[column] = pd.to_datetime(df[column]).dt.date
+
+            # Generar el archivo Excel
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = f'attachment; filename="ordenes_compras.xlsx"'
+
+            with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+                reemplazos = {
+                    'COMPLETED': 'Completado',
+                    'PENDING': 'Pendiente',
+                    'CANCELLED': 'Cancelado'
+                }
+                print("reemplazos", reemplazos)
+                #Cambiar los estatus a español
+                df['Estado'] = df['Estado'].replace(reemplazos)
+                df.to_excel(writer, index=False, sheet_name='Ordenes Compras', startrow=3)  # Start from row 4
+                workbook = writer.book
+                worksheet = writer.sheets['Ordenes Compras']
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC',
+                    'border': 1
+                })
+
+                # Formato para el título
+                title_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 18,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'font_color': '#0c8f00',  # White,
+                    'fg_color': '#1F4E78',  # Dark Blue
+                })
+
+                # Formato de fondo azul oscuro para las primeras tres filas
+                background_format = workbook.add_format({
+                    'fg_color': '#1F4E78',  # Dark Blue
+                    'border': 0,
+                })
+
+                # Aplicar fondo azul oscuro a las primeras tres filas
+                worksheet.set_row(0, 20, background_format)
+                worksheet.set_row(1, 20, background_format)
+                worksheet.set_row(2, 20, background_format)
+
+                # Insertar la imagen en la primera fila
+                worksheet.insert_image('A1', 'media/images/Logo.png', {'x_scale': 0.5, 'y_scale': 0.5})
+                
+                rif_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 12,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'fg_color': '#1F4E78',  # Dark Blue
+                    'font_color': '#FFFFFF',  # White
+                })
+                worksheet.merge_range('A2:G2', 'RIF: J-075199600', rif_format)  # RIF in row 3
+                # Agregar un título en la segunda fila
+                worksheet.merge_range('A3:E3', 'Pedidos', title_format)
+
+                # Aplicar formato al encabezado
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(3, col_num, value, header_format)  # Header on row 4
+
+                # Ajustar automáticamente el ancho de las columnas
+                for column in df:
+                    column_length = max(df[column].astype(str).map(len).max(), len(column))
+                    col_idx = df.columns.get_loc(column)
+                    worksheet.set_column(col_idx, col_idx, column_length)
+
+                # Agregar un gráfico
+            log_user_action(request.user, "exportar pedidos", None, f"Se han exportado todos los pedidos a Excel")
+
+            return response
+        except Exception as e:
+            return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
+
+

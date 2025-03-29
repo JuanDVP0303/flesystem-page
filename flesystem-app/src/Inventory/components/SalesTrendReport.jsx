@@ -128,11 +128,49 @@ export default function SalesTrendsReport() {
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 plugins: {
-                                    legend: { display: true, position: "top" },
+                                    legend: { 
+                                        display: true, 
+                                        position: "top",
+                                        labels: {
+                                            generateLabels: (chart) => {
+                                                const data = chart.data;
+                                                if (data.labels.length && data.datasets.length) {
+                                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                                    return data.labels.map((label, i) => {
+                                                        const value = data.datasets[0].data[i];
+                                                        const percentage = ((value / total) * 100).toFixed(2) + '%';
+                                                        return {
+                                                            text: `${label} (${percentage})`,
+                                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                                            strokeStyle: data.datasets[0].borderColor[i],
+                                                            hidden: !chart.getDataVisibility(i),
+                                                            lineCap: 'round',
+                                                            lineDash: [],
+                                                            lineDashOffset: 0,
+                                                            lineJoin: 'round',
+                                                            lineWidth: 1,
+                                                            pointStyle: undefined,
+                                                            rotation: 0
+                                                        };
+                                                    });
+                                                }
+                                                return [];
+                                            }
+                                        }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: (context) => {
+                                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                                const percentage = ((context.raw / total) * 100).toFixed(2) + '%';
+                                                return `${context.label}: ${context.raw} (${percentage})`;
+                                            }
+                                        }
+                                    },
                                     title: { display: true, text: "Distribución de Productos por Cantidad Vendida" }
                                 }
                             }} 
-                        />
+/>
                     </div>
                 </div>
             )}

@@ -14,6 +14,7 @@ from django.db.models.functions import Trunc
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.http import HttpResponse
+from io import BytesIO
 
 # from audits.views import create_movement, asign_credits
 # from operators.models import OperationsCategories, Bank, BranchOffice
@@ -370,7 +371,7 @@ class ProductsViewset(viewsets.ModelViewSet):
                         'total_quantity': total_quantity,
                         'min_stock': product.min_stock,
                         'max_stock': product.max_stock,
-                        'product_id': product.id,
+                        # 'product_id': product.id,
                         'provider_id': product.provider.id if product.provider else None,
                         'sell_price': product.sell_price
                     })
@@ -388,7 +389,7 @@ class ProductsViewset(viewsets.ModelViewSet):
                 'total_quantity': 'Cantidad Total',
                 'min_stock': 'Stock Mínimo',
                 'max_stock': 'Stock Máximo',
-                'product_id': 'ID del Producto',
+                # 'product_id': 'ID del Producto',
                 'provider_id': 'ID del Proveedor',
                 'sell_price': 'Precio de Venta'
             })
@@ -491,6 +492,7 @@ class ProductsViewset(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
+
 class MovementsViewset(viewsets.ModelViewSet):
     queryset = Movement.objects.all()
     serializer_class = MovementSerializer
@@ -510,27 +512,112 @@ class MovementsViewset(viewsets.ModelViewSet):
 class InventoryReportsViewset(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='low-stock')
     def low_stock_report(self, request):
-        threshold = request.query_params.get('threshold', 10)
-        products = Product.objects.filter(current_stock__lte=threshold)
-        data = [{
-            "Producto": p.name,
-            "Stock Actual": p.current_stock,
-            "Stock Mínimo": p.min_stock
-        } for p in products]
-        
+        try:
+            threshold = request.query_params.get('threshold', 10)
+            inventory = Inventory.objects.last()
+            products = inventory.products.all()
+            min_stock_products = []
+            
+            for product in products:
+                batches = ProductBatch.objects.filter(product=product)
+                total_quantity = batches.aggregate(total_quantity=Sum('quantity')).get('total_quantity', 0) or 0
+                if not product.min_stock:
+                    continue
+                if total_quantity <= product.min_stock + 5:
+                    min_stock_products.append({
+                        'product_name': product.name,
+                        'total_quantity': total_quantity,
+                        'min_stock': product.min_stock,
+                        'max_stock': product.max_stock,
+                        'product_id': product.id,
+                        'provider_id': product.provider.id if product.provider else None,
+                        'provider_name': product.provider.name if product.provider else None,
+                        'sell_price': product.sell_price
+                    })
 
-        if request.query_params.get('format') == 'pdf':
-            return generate_pdf_response(data, 'low_stock_report')
-        elif request.query_params.get('format') == 'excel':
-            df = pd.DataFrame(data)
-            return generate_excel_response(df, 'low_stock_report')
-        elif request.query_params.get('format') == 'csv':
-            df = pd.DataFrame(data)
-            return generate_csv_response(df, 'low_stock_report')
+            # Crear DataFrame con los datos
+            df = pd.DataFrame([{
+                "Producto": p.get("product_name"),
+                "Stock Actual": p.get("total_quantity"),
+                "Precio de Venta": p.get("sell_price"),
+                "Proveedor": p.get("provider_name"),
+                "Stock Mínimo": p.get("min_stock"),
+                "Stock Máximo": p.get("max_stock"),
+            } for p in min_stock_products])
+
+            if df.empty:
+                return HttpResponse(
+                    json.dumps({"error": "No hay productos con stock bajo"}),
+                    status=404,
+                    content_type="application/json"
+                )
+
+            # Configurar respuesta HTTP
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename="informe_stock_bajo.xlsx"'
+
+            with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Stock Bajo', startrow=3)
+                workbook = writer.book
+                worksheet = writer.sheets['Stock Bajo']
+
+                # Formato para encabezados
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC',
+                    'border': 1
+                })
+
+                # Formato de título
+                title_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 18,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'font_color': '#FFFFFF',
+                    'fg_color': '#1F4E78',
+                })
+
+                # Fondo azul para primeras filas
+                background_format = workbook.add_format({'fg_color': '#1F4E78'})
+                
+                # Aplicar formatos
+                for row in range(0, 3):
+                    worksheet.set_row(row, 20, background_format)
+
+                # Insertar logo y texto
+                worksheet.insert_image('A1', 'media/images/Logo.png', {'x_scale': 0.5, 'y_scale': 0.5})
+                worksheet.merge_range('A2:F2', 'RIF: J-075199600', workbook.add_format({
+                    'bold': True,
+                    'font_size': 12,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'font_color': '#FFFFFF',
+                    'fg_color': '#1F4E78'
+                }))
+                worksheet.merge_range('A3:F3', 'Reporte de Stock Bajo', title_format)
+
+                # Aplicar formato a encabezados de columna
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(3, col_num, value, header_format)
+
+                # Ajustar anchos de columnas
+                for idx, col in enumerate(df.columns):
+                    max_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
+                    worksheet.set_column(idx, idx, max_len)
+
+            return response
+
+        except Exception as e:
+            print(f"Error generando reporte: {str(e)}")
+            return HttpResponse(
+                json.dumps({"error": f"Error interno: {str(e)}"}),
+                status=500,
+                content_type="application/json"
+            )
         
-        
-        # Similar lógica de exportación...
-    
     @action(detail=False, methods=['get'], url_path='sales-trends')
     def sales_trends_report(self, request):
         # Parámetros de la solicitud
