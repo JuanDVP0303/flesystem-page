@@ -12,7 +12,8 @@ urlpatterns = [
     # path('countries/', views.CountryList.as_view(), name='countries'),
     path('users/', views.UsersViewset.as_view(), name='users'),
     path('token/refresh/', views.TokenRefreshCustomView.as_view(), name='token_refresh'),
-    
+    path('password_reset/', views.ResetPasswordView.as_view(), name='password_reset'),
+    path('password_reset_confirm/', views.ResetPasswordConfirmView.as_view(), name='password_reset_confirm'),
     #Importar el router
     path('', include(router.urls)),
 ]

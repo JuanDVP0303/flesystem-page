@@ -8,13 +8,16 @@ class BuyingRecords(models.Model):
         ('CANCELLED', 'Cancelada'),
     ]
     created_at = models.DateTimeField(auto_now_add=True)
+    payment_method = models.CharField(max_length=20, null=True, blank=True)
+    payment_date = models.DateTimeField(null=True, blank=True)
+    payment_proof = models.FileField(upload_to='payment_proofs/', null=True, blank=True)
     purchase_date = models.DateField(default=None)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     total_cost = models.FloatField(null=True, blank=True)
     user = models.ForeignKey("users.Account", on_delete=models.CASCADE, null=True, blank=True)
     
     def __str__(self):
-        return f"Orden {self.id} - {self.provider.name}"
+        return f"Orden {self.id}"
     
 class BuyingRecordsProducts(models.Model):
     buying_record = models.ForeignKey(BuyingRecords, on_delete=models.CASCADE)

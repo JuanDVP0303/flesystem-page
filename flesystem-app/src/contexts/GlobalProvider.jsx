@@ -23,10 +23,12 @@ const GlobalProvider = ({ children }) => {
         console.log("ENTRO")
         getUserInfo(JSON.parse(account_json).id)
       }else{
-        console.log("NO ENTRO")
-        setAuthenticatedUser(null)
-        window.location.pathname !== "/register" && goTo('/login')
-        localStorage.clear()
+        if(window.location.pathname !== "/password-reset-confirm"){
+          console.log("NO ENTRO")
+          setAuthenticatedUser(null)
+          window.location.pathname !== "/register" && goTo('/login')
+          localStorage.clear()
+        }
       }
 
     }, [])

@@ -14,7 +14,12 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import user_passes_test
 import subprocess
 import os
+import secrets
+from django.conf import settings
 import pandas as pd
+from django.utils import timezone
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from rest_framework import viewsets
@@ -107,6 +112,76 @@ class LogoutUserView(APIView):
 
         # except Exception as e:
         #     return Response({"message": "Error al cerrar sesión", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ResetPasswordView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        user = Account.objects.filter(email=email)
+        
+        if not user.exists():
+            # Para mayor seguridad, deberías evitar revelar si el email existe
+            return Response({"message": "¡El email no existe!", "error": True}, status=status.HTTP_200_OK)
+        
+        user = user.first()
+        
+        if not user.is_active:
+            return Response({"error": "Usuario inactivo"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Generar token seguro
+        verification_hash = secrets.token_urlsafe(32)
+        user.reset_password_hash = verification_hash
+        user.save()
+        
+        # Registrar la acción
+        
+        # Construir y enviar email
+        reset_link = f"{settings.FRONTEND_URL}/password-reset-confirm?hash={verification_hash}"
+        context = {
+            'user_email': user.email,
+            'reset_link': reset_link,
+            'year': timezone.now().year,
+        }
+        html_content = render_to_string('emails/recovery_password.html', context)
+
+        try:
+            email = EmailMessage(
+                subject='Restablecimiento de contraseña',
+                body=html_content,  # fallback para clientes que no soportan HTML
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+            )
+            email.content_subtype = 'html'  # Indica que es HTML
+            email.send(fail_silently=False)
+        except Exception as e:
+            print(f"Error enviando email de reset: {str(e)}")
+            return Response(
+                {"error": "Error al enviar el correo de recuperación"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        log_user_action(user, "cambio de contraseña", None, f"Solicitud de reset de contraseña para {user.email}")
+        
+        return Response(
+            {"message": "Se han enviado instrucciones de recuperación a tu correo"},
+            status=status.HTTP_200_OK
+        )
+
+class ResetPasswordConfirmView(APIView):
+    def post(self, request):
+        hash = request.data.get('hash')
+        new_password = request.data.get('new_password')
+        
+        try:
+            user = Account.objects.get(reset_password_hash=hash)
+            # Validar tiempo de expiración si lo implementas
+            user.set_password(new_password)
+            user.reset_password_hash = None  # Invalidar el hash usado
+            user.save()
+            log_user_action(user, "confirmacion de cambio de contraseña", None, f"Contraseña actualizada para el usuario: {user.email}")
+            
+            return Response({"message": "Contraseña actualizada exitosamente"})
+        
+        except Account.DoesNotExist:
+            return Response({"error": "Enlace inválido o expirado"}, status=400)        
 
 class UsersViewset(APIView):
     def get(self, request):

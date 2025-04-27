@@ -116,6 +116,12 @@ class PurchaseViewset(viewsets.ModelViewSet):
             return Response({"error": "La orden no existe."}, status=404)
 
         if status == "COMPLETED":
+            global_quantity = ProductBatch.objects.filter(product=order.product).aggregate(Sum('quantity'))['quantity__sum']
+            if float(global_quantity) + float(real_quantity) > float(order.product.max_stock):
+                return Response(
+                    {"error": "La cantidad real supera el stock máximo permitido."},
+                    status=400,
+                )
             batch = ProductBatch.objects.create(
                 product=order.product,
                 purchase_order=order,

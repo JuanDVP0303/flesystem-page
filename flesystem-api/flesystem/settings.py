@@ -73,8 +73,19 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'flesystem.wsgi.application'
+# Configuración de email
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587  # Para TLS
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'flesystementerprise@gmail.com'  # Tu dirección completa de Gmail
+EMAIL_HOST_PASSWORD = 'jdff fnul mpyt nzff'  # ¡NO tu contraseña normal!
+DEFAULT_FROM_EMAIL = 'Flesystem <flesystementerprise@gmail.com>'  # Formato profesional
+SERVER_EMAIL = 'flesystementerprise@gmail.com'  # Para emails de error del servidor
 
-
+# URL del frontend para el reset
+FRONTEND_URL = 'https://tudominio.com'
+FRONTEND_URL = "http://localhost:5173"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 

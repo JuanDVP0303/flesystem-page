@@ -143,7 +143,7 @@ const PurchasesProvider = ({ children }) => {
             getOrders()
           }
           else{
-            toast.error("Hubo un error al actualizar el estado de la orden")
+            toast.error(res.data.error)
           }
         } catch (error) {
           console.log(error)

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, List, DialogActions } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, List, DialogActions, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { Typography, Button, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { ListItem, ListItemText, ListItemButton } from '@mui/material';
 import { buyingRecordContext } from '../contexts/context';
 import { useBuyingRecordContext } from '../hooks/useBuyingRecords';
 import { useGlobalContext } from '../hooks/useGlobalContext';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import DragAndDropBox from '../components/utils/DragAndDropBox';
 
 export const RECORDSTATUSES = {
     'PENDING': 'Pendiente',
@@ -78,6 +79,15 @@ const BuyingRecordItem = ({ record, onClick }) => {
 
 const BuyingRecordDetails = ({ record, onBack }) => {
   const {authenticatedUser} = useGlobalContext();
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentRef, setPaymentRef] = useState('');
+
+  useEffect(() => {
+    if (record){
+      setPaymentMethod(record.payment_method || '');
+      setPaymentRef(record.payment_proof || '');
+    }
+  }, [record]);
   const generateOrderSummary = () => {
     let summary = `*Buen día he generado el pedido de id #${record.id}*\n\n`;
     summary += `Cliente: ${authenticatedUser?.email || 'No especificado'}\n`;
@@ -131,6 +141,33 @@ const handleWhatsAppClick = () => {
             ))}
           </TableBody>
         </Table>
+                  <FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
+                    <InputLabel id="payment-method-label">Método de pago</InputLabel>
+                    <Select
+                      labelId="payment-method-label"
+                      id="payment-method-select"
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      label="Método de pago"
+                      fullWidth
+                      disabled
+                    >
+                      <MenuItem value="effective">Efectivo</MenuItem>
+                      <MenuItem value="transfer">Transferencia</MenuItem>
+                      <MenuItem value="movil_pay">Pago Móvil</MenuItem>
+                    </Select>
+                    
+                  </FormControl>
+                  <DragAndDropBox
+                      disabled
+
+                    setFieldValue={(file) => {}}
+                    field={"payment_proof"}
+                    label={"Referencia de pago"}
+                    value={paymentRef}
+                    width={160}
+                    height={160}
+                  />
         {console.log(authenticatedUser.id, record?.user?.id)}
    {authenticatedUser.id == record?.user?.id && <Button
                 variant="contained"

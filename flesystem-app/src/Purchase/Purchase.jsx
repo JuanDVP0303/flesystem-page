@@ -362,6 +362,7 @@ const PurchaseSection = () => {
                 name="real_quantity"
                 required={true}
                 label="Cantidad real"
+                maxNumber={formValues.quantity}
                 disabled={purchasesModalType.status != "PENDING"}
                 numeric={true}
                 placeholder="Ex:. 50.00"

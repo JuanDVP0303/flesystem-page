@@ -67,6 +67,9 @@ function Login({formRef, loginUser}) {
         <Link to="/register" className='font-light'>
           ¿No tienes una cuenta? Registrate
         </Link>
+        <Link to="/password-reset" className='font-light'>
+          ¿Olvidaste tu contraseña? Restablecer
+        </Link>
         </form>
     </article>
   )

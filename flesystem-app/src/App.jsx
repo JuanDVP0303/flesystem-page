@@ -17,6 +17,7 @@ import Admin from "./Admin/Admin"
 import { AdminProvider } from "./contexts/AdminProvider"
 import { BuyingRecordProvider } from "./contexts/BuyingRecordsProvider"
 import OperatorDashboard from "./BuyingRecords/BuyingRecords"
+import { PasswordResetConfirmMain, PasswordResetMain } from "./Auth/RecoverPassword"
 
 
 export default function App() {
@@ -43,6 +44,8 @@ export default function App() {
             <Route path="/inventory/registry-general/" element={<InventoryMovements type={"general"} />}/>
             <Route path="/login" element={<Auth />} />
             <Route path="/register" element={<Auth />} />
+            <Route path="/password-reset" element={<PasswordResetMain />} />
+            <Route path="/password-reset-confirm/" element={<PasswordResetConfirmMain />} />
             <Route path="*" element={<h1>Not Found </h1>}></Route>
           </Route>
         </Routes>

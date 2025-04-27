@@ -654,9 +654,17 @@ export const FieldGroup = ({
   numeric,
   multiple,
   type,
+  maxNumber,
   searchFunction, multiline, endAdornment, choices, formValues, options
 }) => {
+  const handleKeyDown = (e) => {
+    if (e.key === '-' || e.key === 'e' || e.key === '+' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key=="."  || e.key=="," ) {
+      e.preventDefault();
+    }
+  };
+  
   return (
+    
   
     <div className="flex flex-col flex-1">
       <FormLabel>
@@ -717,12 +725,12 @@ export const FieldGroup = ({
           type={type ? type : numeric ? "number" : "text"}
           step={numeric ? "0.01" : ""}
           size="medium"
-          inputProps={{ min: 1 }}
           select={!!choices}
           disabled={disabled}
           value={value || null}
           multiple={multiple}
-
+          max={maxNumber}
+          min={0}
           name={name}
           defaultValue={defaultValue}
           placeholder={placeholder}
@@ -737,7 +745,10 @@ export const FieldGroup = ({
               borderRadius: 3,
               width: "100%",
             },
+            min: 0,
+            
           }}
+          onKeyDown={numeric ? handleKeyDown : null}
         >
           {choices && choices?.map((choice, index) => (
             <MenuItem key={index} value={choice?.id}>{choice?.name}</MenuItem>

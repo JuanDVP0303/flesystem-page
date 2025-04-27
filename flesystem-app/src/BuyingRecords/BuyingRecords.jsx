@@ -3,20 +3,33 @@ import {
   Container, Typography, Grid, Paper, Button, 
   Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Dialog, DialogActions, 
-  DialogContent, DialogTitle
+  DialogContent, DialogTitle,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import { useBuyingRecordContext } from '../hooks/useBuyingRecords';
 import { RECORDSTATUSES } from '../Products/UserBuyingRecords';
 import OrderStatusDashboard from './BuyingRecordsStatuses';
+import DragAndDropBox from '../components/utils/DragAndDropBox';
 
 const OperatorDashboard = () => {
   const { buyingRecords, getBuyingRecords, updateOrderStatus } = useBuyingRecordContext();
   const [stats, setStats] = useState({ pending: 0, completed: 0, cancelled: 0 });
   const [selectedOrder, setSelectedOrder] = useState(null);
-
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentRef, setPaymentRef] = useState('');
   useEffect(() => {
     getBuyingRecords();
   }, []);
+
+  useEffect(() => {
+    if (selectedOrder) {
+      setPaymentMethod(selectedOrder.payment_method);
+      setPaymentRef(selectedOrder.payment_proof);
+    }
+  }, [selectedOrder])
 
   useEffect(() => {
     const newStats = buyingRecords.reduce((acc, order) => {
@@ -35,9 +48,11 @@ const OperatorDashboard = () => {
   };
 
   const handleUpdateStatus = async (orderId, newStatus) => {
-    await updateOrderStatus(orderId, newStatus);
+    await updateOrderStatus(orderId, newStatus, paymentMethod, paymentRef);
     getBuyingRecords();
     handleCloseDialog();
+    setPaymentMethod('');
+    setPaymentRef('');
   };
 
   return (
@@ -79,7 +94,6 @@ const OperatorDashboard = () => {
       <Dialog fullWidth open={!!selectedOrder} onClose={handleCloseDialog}>
         <DialogTitle>Detalles del Pedido #{selectedOrder?.id}</DialogTitle>
         <DialogContent>
-          {console.log(selectedOrder)}
           <Typography>Usuario: {selectedOrder?.user?.email}</Typography>
           <Typography>Fecha: {selectedOrder?.purchase_date}</Typography>
           <Typography>Estado: {RECORDSTATUSES[selectedOrder?.status]}</Typography>
@@ -106,6 +120,35 @@ const OperatorDashboard = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
+            <InputLabel id="payment-method-label">Método de pago</InputLabel>
+            <Select
+              labelId="payment-method-label"
+              id="payment-method-select"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              label="Método de pago"
+              disabled={selectedOrder?.status !== 'PENDING'}
+              fullWidth
+            >
+              <MenuItem value="effective">Efectivo</MenuItem>
+              <MenuItem value="transfer">Transferencia</MenuItem>
+              <MenuItem value="movil_pay">Pago Móvil</MenuItem>
+            </Select>
+            
+          </FormControl>
+          <DragAndDropBox
+            setFieldValue={(file) => {
+              setPaymentRef(file);
+            }}
+            disabled={selectedOrder?.status !== 'PENDING'}
+
+            field={"payment_proof"}
+            label={"Referencia de pago"}
+            value={paymentRef}
+            width={160}
+            height={160}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cerrar</Button>

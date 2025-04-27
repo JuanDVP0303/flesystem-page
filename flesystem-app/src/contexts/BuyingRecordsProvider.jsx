@@ -18,11 +18,13 @@ export const BuyingRecordProvider = ({ children }) => {
         }
     }, []);
 
-    const updateOrderStatus = async (orderId, newStatus) => {
+    const updateOrderStatus = async (orderId, newStatus, paymentMethod, paymentRef) => {
         try {
-            const response = await api.patch(`/buying/records/${orderId}/update-status/`, {
-                status: newStatus
-            });
+            const formData = new FormData();
+            formData.append('status', newStatus);
+            formData.append('payment_method', paymentMethod);
+            formData.append('payment_ref', paymentRef);
+            const response = await api.patch(`/buying/records/${orderId}/update-status/`, formData);
             if (response.status === 200) {
                 toast.success('Estado del pedido actualizado correctamente');
             }

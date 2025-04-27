@@ -217,7 +217,7 @@ const Admin = () => {
             <>
               <Button
               onClick={() => {
-                downloadManual("admin")
+                downloadManual("operator")
 
               }}
               variant="contained"
@@ -336,7 +336,7 @@ const AuditTable = ({ auditLogs }) => {
     return matchesEmail && matchesAction && matchesDate;
   });
 
-  const uniqueActions = [...new Set(filteredAuditLogs.map(log => log.action))];
+  const uniqueActions = [...new Set(auditLogs.map(log => log.action))];
 
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredAuditLogs.length) : 0;

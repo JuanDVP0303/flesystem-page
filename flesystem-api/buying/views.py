@@ -68,6 +68,9 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
     def update_status(self, request, id=None):
         buying_record = self.get_object()
         new_status = request.data.get('status')
+        payment_method = request.data.get('payment_method')
+        payment_ref = request.data.get('payment_ref')
+        print("payment_ref", payment_ref)
 
         if new_status not in [status for status, _ in BuyingRecords.STATUS_CHOICES]:
             return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
@@ -79,6 +82,10 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
                         update_product_batches(product_record.product, product_record.quantity)
                     
                     buying_record.status = new_status
+                    buying_record.payment_method = payment_method
+                    buying_record.payment_date = timezone.now()
+                    if payment_ref:
+                        buying_record.payment_proof = payment_ref
                     buying_record.save()
             except ValueError as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
