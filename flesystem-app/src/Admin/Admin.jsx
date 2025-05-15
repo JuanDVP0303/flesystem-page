@@ -115,6 +115,7 @@ const Admin = () => {
     }
   }
 
+
   const downloadLowStockProducts = async  () => {
     try {
       const response = await api.get('/inventory/reports/low-stock/', { responseType: "blob" });
@@ -122,9 +123,13 @@ const Admin = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `low_stock_products.xlsx`);
+      const today = moment()
+      const download_name = `low_stock_products_${today.format('YYYY-MM-DD')}.xlsx`;
+      link.download = download_name
       document.body.appendChild(link);
       link.click();
+      window.URL.revokeObjectURL(url);
+
   } catch (error) {
       console.error("Error al exportar las compras completadas:", error);
   }

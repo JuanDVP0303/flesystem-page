@@ -16,8 +16,9 @@ from xhtml2pdf import pisa
 import pandas as pd
 from django.http import HttpResponse
 import xlsxwriter
+from django.utils import timezone
 
-def generate_excel_response(df, filename):
+def generate_excel_response(df, filename, request):
     """
     Generates a visually appealing and functional Excel file response.
 
@@ -37,13 +38,17 @@ def generate_excel_response(df, filename):
     # Rename columns to Spanish
     df = df.rename(
         columns={
-            'period': 'Periodo',
+            'date': 'Fecha',
             'product': 'Producto',
             'product_price': 'Precio del Producto',
             'total_quantity': 'Cantidad Total',
             'total_sales': 'Ventas Totales',
         }
     )
+    
+    #Quitar la columna period del df
+    if 'period' in df.columns:
+        df = df.drop(columns=['period'])
 
     # Convert timezone-aware datetime columns to timezone-naive dates
     for column in df.columns:
@@ -82,6 +87,40 @@ def generate_excel_response(df, filename):
                 'align': 'center',
             }
         )
+        footer_row = 12 + len(df)  # Fila después de los datos (0-based)
+        footer_start_row = footer_row + 4
+        footer_format = workbook.add_format({
+            'bold': True,
+            'font_size': 12,
+            'valign': 'vcenter',
+            'fg_color': '#1F4E78',
+            'font_color': '#FFFFFF',
+        })
+            
+        # Obtener información del usuario y fecha/hora
+        user_name = "Usuario Anónimo"
+        if request.user.is_authenticated:
+            user_name = request.user.email
+        current_time = timezone.now().strftime("%d/%m/%Y %H:%M:%S")
+        footer_text = f"Generado por: {user_name}"
+
+        # Primera línea del pie (fila combinada)
+        worksheet.merge_range(
+            footer_start_row, 0,  # Desde columna A
+            footer_start_row, 13333,  # Hasta columna G
+            footer_text,
+            footer_format
+        )
+        
+        # Segunda línea del pie (fila combinada debajo)
+        worksheet.merge_range(
+            footer_start_row + 1, 0, 
+            footer_start_row + 1, 13333,
+            f"Fecha y hora de generación: {current_time}",
+            footer_format
+        )
+
+
 
         date_format = workbook.add_format({'num_format': 'dd/mm/yyyy'})  # Date format
         currency_format = workbook.add_format(
@@ -115,7 +154,6 @@ def generate_excel_response(df, filename):
         worksheet.set_row(0, 20, background_format)
         worksheet.set_row(1, 20, background_format)
         worksheet.set_row(2, 20, background_format)
-        worksheet.set_row(3, 20, background_format)
 
         # Insert the image in the first row
         worksheet.insert_image('A1', 'media/images/Logo.png', {'x_scale': 0.8, 'y_scale': 0.8})
@@ -134,12 +172,12 @@ def generate_excel_response(df, filename):
 
         # Apply header format
         for col_num, value in enumerate(df.columns.values):
-            worksheet.write(5, col_num, value, header_format)  # Header on row 4
+            worksheet.write(4, col_num, value, header_format)  # Header on row 4
 
         # Apply formats to data
         for column in df.columns:
             col_idx = df.columns.get_loc(column)
-            for row_num in range(4, len(df) + 4):  # Start from row 4 (data start)
+            for row_num in range(5, len(df) + 4):  # Start from row 4 (data start)
                 cell_value = df.iloc[row_num - 4, col_idx]
                 if pd.api.types.is_datetime64_any_dtype(df[column]):
                     worksheet.write_datetime(

@@ -77,6 +77,13 @@ export default function Products() {
 
 const generateOrder = async () => {
   try {
+//VErificar que todos los productos tengan cantidad mayor a 0
+    const isAnyProductInQuantityZero = selectedProducts.find(product => product.quantity == 0 || product.quantity == null)
+    if(isAnyProductInQuantityZero){
+      toast.error("Ingrese la cantidad en todos los productos")
+      return
+    }
+
     const response = await api.post('/buying/records/create-buying-record/', {
       products: selectedProducts.map(product => ({
         id: product.id,

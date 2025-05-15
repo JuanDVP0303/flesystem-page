@@ -585,9 +585,9 @@ const ProvidersView = ({ state }) => {
           </Card>
           </ModalComponent>
           <div className="mb-6 flex gap-4">
-        <GenericButton outlined onClick={() => setShowProvidersProduct(true)} label={"Productos"}>
+{provider && <>        <GenericButton outlined onClick={() => setShowProvidersProduct(true)} label={"Productos"}>
         </GenericButton>
-        <GenericButton onClick={handleExportCompletedOrders} label={"Compras Completadas"} />
+        <GenericButton onClick={handleExportCompletedOrders} label={"Compras Completadas"} /></>}
           </div>
         </Box>
         <form

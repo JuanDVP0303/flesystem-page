@@ -3,7 +3,8 @@ import { useState } from "react";
 import { productDataUrl } from "../../data";
 import { MisionVision } from "./MisionVision";
 import { Link } from "react-router-dom";
-
+import enterpriseImage from "../../../public/656.jpg";
+import flejes from "../../../public/flejes.jpg";
 export default function About() {
   return (
     <>
@@ -53,7 +54,7 @@ const AboutTwo = () => {
       <section className="ml-5 mr-5">
         <figure className="flex justify-center">
           <img
-            src="https://i.postimg.cc/HnMsyTcp/656.jpg"
+            src={enterpriseImage}
             className="w-full md:object-cover md:w-[90%]"
             alt=""
           />
@@ -76,7 +77,7 @@ const AboutTwo = () => {
             </p>
           </div>
           <img
-            src="https://i.postimg.cc/Ss5KfQ7M/Imagen-de-Whats-App-2023-12-06-a-las-19-47-18-787082d0.jpg"
+            src={flejes}
             className="h-96 w-[95%] md:max-w-[50%] rounded-xl"
             alt=""
           />

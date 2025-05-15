@@ -289,7 +289,7 @@ const DragAndDropBox = ({
         textAlign='center'
         sx={{ position: 'absolute', top: '50%', width: '100%', transform: 'translateY(-50%)' }}
       >
-        {!disabled ? "Subir comprobante" : "Sin comprobante" }
+        {!disabled ? "Subir foto" : "Sin foto" }
       </Typography>  
         }
         <Input

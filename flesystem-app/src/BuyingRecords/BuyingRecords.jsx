@@ -7,7 +7,9 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  TextField,
+  Card
 } from '@mui/material';
 import { useBuyingRecordContext } from '../hooks/useBuyingRecords';
 import { RECORDSTATUSES } from '../Products/UserBuyingRecords';
@@ -16,13 +18,19 @@ import DragAndDropBox from '../components/utils/DragAndDropBox';
 
 const OperatorDashboard = () => {
   const { buyingRecords, getBuyingRecords, updateOrderStatus } = useBuyingRecordContext();
+  const [buyingRecordsToShow, setBuyingRecordsToShow] = useState([]);
   const [stats, setStats] = useState({ pending: 0, completed: 0, cancelled: 0 });
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentRef, setPaymentRef] = useState('');
+  const [searchedId, setSearchedId] = useState('');
   useEffect(() => {
     getBuyingRecords();
   }, []);
+
+  useEffect(() => {
+    setBuyingRecordsToShow(buyingRecords);
+  }, [buyingRecords]);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -55,6 +63,16 @@ const OperatorDashboard = () => {
     setPaymentRef('');
   };
 
+
+  useEffect(() => {
+    if (searchedId) {
+      const filteredRecords = buyingRecords.filter((record) => record.id.toString().includes(searchedId));
+      setBuyingRecordsToShow(filteredRecords);
+    } else {
+      setBuyingRecordsToShow(buyingRecords);
+    }
+  }, [searchedId, buyingRecords]);
+
   return (
     <Container>
       <Typography variant="h4" sx={{mt:4}} gutterBottom>Panel de pedidos</Typography>
@@ -62,8 +80,21 @@ const OperatorDashboard = () => {
       {/* Dashboard */}
     
         <OrderStatusDashboard/>
+      
+      {/* Textfield para filtrar por ID De pedido */}
+
+      <Card sx={{my:2}}>
+        <FormControl fullWidth variant="outlined" sx={{ m: 2 }}>
+          <TextField
+            label="Buscar por ID de pedido"
+            variant="outlined"
+            value={searchedId}
+            onChange={(e) => setSearchedId(e.target.value)}
+          />
+        </FormControl>
+        </Card>
       {/* Lista de Pedidos */}
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{my:2}}>
         <Table>
           <TableHead>
             <TableRow>
@@ -75,7 +106,7 @@ const OperatorDashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {buyingRecords.map((order) => (
+            {buyingRecordsToShow.map((order) => (
               <TableRow key={order.id}>
                 <TableCell>{order.id}</TableCell>
                 <TableCell>{order.purchase_date}</TableCell>

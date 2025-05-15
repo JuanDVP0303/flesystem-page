@@ -41,11 +41,11 @@ const InventoryMovements = ({type}) => {
       <Button variant='outlined' onClick={() => {
         setShowSalesTrend(!showSalesTrend)
       }}>
-        Reportes de ventas
+        Reportes de pedidos
       </Button>
       </Box>
       <ModalComponent
-        title="Reporte de ventas"
+        title="Reporte de pedidos"
         fullHeight
         fullWidth
       open={showSalesTrend} setOpen={() => setShowSalesTrend(false)}>

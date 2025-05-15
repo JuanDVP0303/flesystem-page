@@ -111,7 +111,7 @@ const ProductView = () => {
               <KeyValue label="Stock Máximo" value={`${product?.max_stock ? product?.max_stock : "Sin descripción"}`} />
               <div className="flex">
                 <div className="flex-1"></div>
-              {!authenticatedUser.is_superuser &&<Button
+              {/* {!authenticatedUser.is_superuser &&<Button
                   className="strong_blue_button"
                   sx={{color:"white", px:4}}
                   onClick={() => {
@@ -130,7 +130,7 @@ const ProductView = () => {
                   }}
                 >
                   <DeleteOutlineIcon /> Eliminar Producto
-                </Button>}
+                </Button>} */}
               </div>
             </div>
             <div className="flex gap-2 items-start">

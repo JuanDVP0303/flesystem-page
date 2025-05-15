@@ -1,11 +1,12 @@
 import { Box, Card } from "@mui/material";
 import Login from "./Login";
 import Register from "./Register";
-import avatar from "../../public/images/avatars/avatar_login.jpg";
-import background from "../../public/background_login.jpg";
+import avatar from "/images/avatars/avatar_login.jpg";
+import background from "/background_login.jpg";
 import { Logo } from "../components/icons/Logo";
+import flesystemLogo from "/Logo2.png";
 //importar el background image del public
-// import background from "../../../public/images/";
+// import background from "..//images/";
 function Auth() {
   const pathname = window.location.pathname;
   return (
@@ -18,7 +19,7 @@ function Auth() {
         <div className="flex-1 flex flex-col overflow-y-auto p-3 w-full">
           <Logo medium />
           <div className="flex justify-center mt-2">
-          <img src="https://i.postimg.cc/Jz7k2pKv/Logo2.png" className='bg-green-900 p-1 rounded-full m-1' alt="" />
+          <img src={flesystemLogo} className='bg-green-900 p-1 rounded-full m-1' alt="" />
 
           {/* <img src={avatar} alt="avatar" className="object-cover w-20 h-20 rounded-full" /> */}
           </div>

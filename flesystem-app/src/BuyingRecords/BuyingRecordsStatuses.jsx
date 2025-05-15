@@ -54,7 +54,7 @@ const OrderStatusDashboard = () => {
           </Paper>
         </Grid>
         <Button variant="contained" color="primary" onClick={exportPurchases} sx={{ m: 2 }}>
-            Exportar Compras Completadas
+            Exportar Pedidos Completados
           </Button>
       </Grid>
     </Box>

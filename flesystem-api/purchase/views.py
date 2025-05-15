@@ -14,6 +14,8 @@ from django.db.models import Count, Sum, F
 from rest_framework.response import Response
 from django.http import HttpResponse
 from users.services import log_user_action
+from django.utils import timezone
+
 class PurchaseViewset(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class =OrderSerializer
@@ -117,6 +119,9 @@ class PurchaseViewset(viewsets.ModelViewSet):
 
         if status == "COMPLETED":
             global_quantity = ProductBatch.objects.filter(product=order.product).aggregate(Sum('quantity'))['quantity__sum']
+            print("GLOBAL", global_quantity)
+            if global_quantity is None:
+                global_quantity = 0
             if float(global_quantity) + float(real_quantity) > float(order.product.max_stock):
                 return Response(
                     {"error": "La cantidad real supera el stock máximo permitido."},
@@ -223,7 +228,7 @@ class ProviderViewset(viewsets.ModelViewSet):
                 orders = Order.objects.filter(provider__id=id, status='COMPLETED').annotate(
                     product_name=F('product__name')
                 ).values(
-                    'id', 'product_name', 'quantity', 'price_unit', 'total_cost', 'purchase_date'
+                    'id', 'product_name', 'quantity', 'real_quantity', 'price_unit', 'total_cost', 'purchase_date'
                 )
 
                 # Crear un DataFrame con los datos
@@ -238,6 +243,7 @@ class ProviderViewset(viewsets.ModelViewSet):
                     'id': 'ID de Compra',
                     'product_name': 'Producto',
                     'quantity': 'Cantidad',
+                    'real_quantity': 'Cantidad Real',
                     'price_unit': 'Precio Unitario',
                     'total_cost': 'Costo Total',
                     'purchase_date': 'Fecha de Compra',
@@ -275,6 +281,43 @@ class ProviderViewset(viewsets.ModelViewSet):
                         'font_color': '#0c8f00',  # White,
                         'fg_color': '#1F4E78',  # Dark Blue
                     })
+                    footer_row = 12 + len(df)  # Fila después de los datos (0-based)
+                    footer_start_row = footer_row + 4
+                    footer_format = workbook.add_format({
+                        'bold': True,
+                        'font_size': 12,
+                        'valign': 'vcenter',
+                        'fg_color': '#1F4E78',
+                        'font_color': '#FFFFFF',
+                    })
+                        
+                    # Obtener información del usuario y fecha/hora
+                    user_name = "Usuario Anónimo"
+                    if request.user.is_authenticated:
+                        user_name = request.user.email
+                    current_time = timezone.now().strftime("%d/%m/%Y %H:%M:%S")
+                    footer_text = f"Generado por: {user_name}"
+
+                    # Primera línea del pie (fila combinada)
+                    worksheet.merge_range(
+                        footer_start_row, 0,  # Desde columna A
+                        footer_start_row, 13333,  # Hasta columna G
+                    footer_text,
+                        footer_format
+                    )
+                    
+                    # Segunda línea del pie (fila combinada debajo)
+                    worksheet.merge_range(
+                        footer_start_row + 1, 0, 
+                        footer_start_row + 1, 13333,
+                        f"Fecha y hora de generación: {current_time}",
+                        footer_format
+                    )
+
+                    # Ajustar altura de las filas del pie
+                    worksheet.set_row(footer_start_row, 20)  # Altura 20 para primera línea
+                    worksheet.set_row(footer_start_row + 1, 20)  # Altura 20 para segunda línea
+
 
                     # Formato de fondo azul oscuro para las primeras tres filas
                     background_format = workbook.add_format({

@@ -41,9 +41,13 @@ const NumericSelector = ({ initialValue = 0, min = 0, max = 100, onChange }) => 
   }, [value, onChange]);
 
   const handleChange = (event) => {
+    console.log("ENTRANDO ACA")
     const newValue = parseInt(event.target.value, 10);
     if (!isNaN(newValue) && newValue >= min && newValue <= max) {
       setValue(newValue);
+    } 
+    if(isNaN(newValue)){
+      setValue(min)
     }
   };
 

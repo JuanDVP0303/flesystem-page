@@ -3,6 +3,7 @@ import { useGlobalContext } from '../hooks/useGlobalContext'
 import NavButtons from './NavButtons'
 import { NavLink } from 'react-router-dom'
 import { api } from '../utils/api'
+import flesystemLogo from "../../public/Logo2.png";
 
 
 
@@ -35,7 +36,7 @@ export const NavBar = () => {
     <nav className={`flex justify-between items-center  w-full  z-2 bg-green-700`} >
       <div className='flex items-center'>
       <NavLink to={"/"} >
-      <img src="https://i.postimg.cc/Jz7k2pKv/Logo2.png" className='bg-green-900 p-2 rounded-full m-1 active:scale-110 transition-transform w-[40px] h-[40px]' alt="" />
+      <img src={flesystemLogo} className='bg-green-900 p-2 rounded-full m-1 active:scale-110 transition-transform w-[40px] h-[40px]' alt="" />
       </NavLink>
       <Typography sx={{color:"white", fontWeight:"bold"}}>
       {authenticatedUser?.email}
@@ -51,7 +52,7 @@ export const NavBar = () => {
       <NavButtons content="Contactos" to="/contact"/>
       </li>
       {
-        authenticatedUser?.kind_of_person != 'client' && <>
+       authenticatedUser && authenticatedUser?.kind_of_person != 'client' && <>
       <li>
         <NavButtons content="Dashboard" to="/dashboard"/>
       </li>

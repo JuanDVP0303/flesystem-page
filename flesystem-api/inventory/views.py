@@ -432,6 +432,44 @@ class ProductsViewset(viewsets.ModelViewSet):
                     'fg_color': '#1F4E78',  # Dark Blue
                     'border': 0,
                 })
+                
+                footer_row = 4 + len(df)  # Fila después de los datos (0-based)
+                footer_start_row = footer_row + 4
+                footer_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 12,
+                    'valign': 'vcenter',
+                    'fg_color': '#1F4E78',
+                    'font_color': '#FFFFFF',
+                })
+                    
+                # Obtener información del usuario y fecha/hora
+                user_name = "Usuario Anónimo"
+                if request.user.is_authenticated:
+                    user_name = request.user.email
+                current_time = timezone.now().strftime("%d/%m/%Y %H:%M:%S")
+                footer_text = f"Generado por: {user_name}"
+
+                # Primera línea del pie (fila combinada)
+                worksheet.merge_range(
+                    footer_start_row, 0,  # Desde columna A
+                    footer_start_row, 13333,  # Hasta columna G
+                   footer_text,
+                    footer_format
+                )
+                
+                # Segunda línea del pie (fila combinada debajo)
+                worksheet.merge_range(
+                    footer_start_row + 1, 0, 
+                    footer_start_row + 1, 13333,
+                    f"Fecha y hora de generación: {current_time}",
+                    footer_format
+                )
+
+                # Ajustar altura de las filas del pie
+                worksheet.set_row(footer_start_row, 20)  # Altura 20 para primera línea
+                worksheet.set_row(footer_start_row + 1, 20)  # Altura 20 para segunda línea
+
 
                 # Aplicar fondo azul oscuro a las primeras tres filas
                 worksheet.set_row(0, 20, background_format)
@@ -545,12 +583,13 @@ class InventoryReportsViewset(viewsets.ViewSet):
                 "Stock Máximo": p.get("max_stock"),
             } for p in min_stock_products])
 
-            if df.empty:
-                return HttpResponse(
-                    json.dumps({"error": "No hay productos con stock bajo"}),
-                    status=404,
-                    content_type="application/json"
-                )
+            # if df.empty:
+            #     import json
+            #     return HttpResponse(
+            #         json.dumps({"error": "No hay productos con stock bajo"}),
+            #         status=404,
+            #         content_type="application/json"
+            #     )
 
             # Configurar respuesta HTTP
             response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -579,7 +618,42 @@ class InventoryReportsViewset(viewsets.ViewSet):
                     'font_color': '#FFFFFF',
                     'fg_color': '#1F4E78',
                 })
+                footer_row = 4 + len(df)  # Fila después de los datos (0-based)
+                footer_start_row = footer_row + 4
+                footer_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 12,
+                    'valign': 'vcenter',
+                    'fg_color': '#1F4E78',
+                    'font_color': '#FFFFFF',
+                })
+                    
+                # Obtener información del usuario y fecha/hora
+                user_name = "Usuario Anónimo"
+                if request.user.is_authenticated:
+                    user_name = request.user.email
+                current_time = timezone.now().strftime("%d/%m/%Y %H:%M:%S")
+                footer_text = f"Generado por: {user_name}"
 
+                # Primera línea del pie (fila combinada)
+                worksheet.merge_range(
+                    footer_start_row, 0,  # Desde columna A
+                    footer_start_row, 13333,  # Hasta columna G
+                   footer_text,
+                    footer_format
+                )
+                
+                # Segunda línea del pie (fila combinada debajo)
+                worksheet.merge_range(
+                    footer_start_row + 1, 0, 
+                    footer_start_row + 1, 13333,
+                    f"Fecha y hora de generación: {current_time}",
+                    footer_format
+                )
+
+                # Ajustar altura de las filas del pie
+                worksheet.set_row(footer_start_row, 20)  # Altura 20 para primera línea
+                worksheet.set_row(footer_start_row + 1, 20)  # Altura 20 para segunda línea
                 # Fondo azul para primeras filas
                 background_format = workbook.add_format({'fg_color': '#1F4E78'})
                 
@@ -612,6 +686,7 @@ class InventoryReportsViewset(viewsets.ViewSet):
 
         except Exception as e:
             print(f"Error generando reporte: {str(e)}")
+            import json
             return HttpResponse(
                 json.dumps({"error": f"Error interno: {str(e)}"}),
                 status=500,
@@ -661,6 +736,7 @@ class InventoryReportsViewset(viewsets.ViewSet):
         data = []
         for t in trends:
             data.append({
+                "date": t['period'].strftime('%Y-%m-%d'),
                 "period": t['period'],
                 "product": t['product__name'],
                 "product_price": round(t['product__sell_price'], 2),
@@ -674,7 +750,7 @@ class InventoryReportsViewset(viewsets.ViewSet):
             return generate_pdf_response(data, 'sales_trends_report')
         elif format_file == 'excel':
             df = pd.DataFrame(data)
-            return generate_excel_response(df, 'sales_trends_report')
+            return generate_excel_response(df, 'sales_trends_report', request)
         elif format_file == 'csv':
             df = pd.DataFrame(data)
             return generate_csv_response(df, 'sales_trends_report')

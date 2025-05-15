@@ -48,6 +48,12 @@ function RegisterBrain({isAdmin}) {
         toast.success('Usuario creado correctamente');
         goTo('/');
       }
+      if(res.status !== 201){
+        console.log(res);
+        for (const key in res.data) {
+          toast.error(`${fieldsObj[key] ?? 'Campo'}: ${res.data[key]}`);
+        }
+      }
       if(isAdmin){
         toast.success('Usuario creado correctamente');
         formRef.current.reset();
@@ -152,11 +158,11 @@ function Register({ formRef, registerUser, isAdmin }) {
 
         <TextField fullWidth label="Contraseña" type="password" name="password" variant="outlined" required />
         
-        <SaveButton variant="contained" color="primary" type="submit" label={'Registrarse'} />
+        <SaveButton variant="contained" color="primary" type="submit" label={isAdmin ? 'Registrar' : 'Registrarse'} />
         
-        <Link to="/login" className="font-light">
+        {!isAdmin && <Link to="/login" className="font-light">
           ¿Ya tienes una cuenta? Inicia sesión
-        </Link>
+        </Link>}
       </form>
     </article>
   );

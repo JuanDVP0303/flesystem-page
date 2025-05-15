@@ -2,8 +2,8 @@ import { Slider } from "./Slider";
 import { NavLink } from "react-router-dom";
 import About from "./About/About";
 import Contact from "../Contact/Contact";
-
-
+import flesystemCompleteLogo from "/510.png";
+import enterpriseImage from "/656.jpg";
 
 export default function Home() {
   return (
@@ -11,13 +11,13 @@ export default function Home() {
       {/* Parte superior, hero */}
       <figure className="h-auto w-full flex justify-center items-center gap-10 flex-col relative pt-20 bg-gradient-to-r from-[#1e3c72] to-[#2974f5]  ">
         <img
-          src="https://i.postimg.cc/SNH2BvYS/656.jpg"
+          src={enterpriseImage}
           className="empresa md:w-[40%]"
           alt=""
         />
         <img
-          src="https://i.postimg.cc/6qyqSr94/510.png"
-          className="w-[90%] md:w-[40%]  object-contain relativ"
+          src={flesystemCompleteLogo}
+          className="w-[90%] md:w-[40%]  object-contain relative"
           alt=""
         />
         <p className="text-white max-w-sm text-sm text-center font-bold">
