@@ -157,7 +157,8 @@ const OperatorDashboard = () => {
               </TableBody>
             </Table>
           </TableContainer>
-{paymentMethod &&<FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
+          {console.log("Selected Order", !!(selectedOrder || paymentMethod))}
+{ !!(selectedOrder?.status == "PENDING" || paymentMethod) &&<FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
             <InputLabel id="payment-method-label">Método de pago</InputLabel>
             <Select
               labelId="payment-method-label"
@@ -174,7 +175,7 @@ const OperatorDashboard = () => {
             </Select>
             
           </FormControl>}
-          {paymentMethod && paymentMethod != "effective" && paymentRef && <DragAndDropBox
+          {!!((selectedOrder?.status == "PENDING" && paymentMethod != "effective") || (paymentMethod && paymentMethod != "effective" && (selectedOrder?.status == "PENDING" ? true : paymentRef))) && <DragAndDropBox
             setFieldValue={(file) => {
               setPaymentRef(file);
             }}

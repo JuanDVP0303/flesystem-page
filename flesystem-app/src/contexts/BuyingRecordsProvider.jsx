@@ -21,13 +21,16 @@ export const BuyingRecordProvider = ({ children }) => {
     const updateOrderStatus = async (orderId, newStatus, paymentMethod, paymentRef) => {
         try {
             const formData = new FormData();
-            if(!paymentMethod){
-                toast.error('Selecciona un método de pago');
-                return;
-            }
-            if(paymentMethod !="effective" && !paymentRef){
-                toast.error('Agrega el comprobante de pago');
-                return;
+            console.log(newStatus)
+            if(newStatus != "CANCELLED"){
+                if(!paymentMethod){
+                    toast.error('Selecciona un método de pago');
+                    return;
+                }
+                if(paymentMethod !="effective" && !paymentRef){
+                    toast.error('Agrega el comprobante de pago');
+                    return;
+                }
             }
             formData.append('status', newStatus);
             formData.append('payment_method', paymentMethod);
