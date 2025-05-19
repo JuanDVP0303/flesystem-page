@@ -34,13 +34,11 @@ export default function Products() {
   );
 
   const [showProductCart, setShowProductCart] = useState(false);
-  const { getProducts, products, selectedProducts, setSelectedProducts } =
-    useInventoryContext();
+  const { getProducts, products, selectedProducts, setSelectedProducts } = useInventoryContext();
   const {buyingRecords, getBuyingRecords } = useBuyingRecordContext()
   const {authenticatedUser} = useGlobalContext()
   const [openUserBuyingRecords, setOpenUserBuyingRecords] = useState(false)
   const [showPreviousPurchaseProducts, setShowPreviousPurchaseProducts] = useState(false)
-    
   useEffect(() => {
     getBuyingRecords()
   }, [])
@@ -94,6 +92,8 @@ const generateOrder = async () => {
 
     if(response.status == 201){
       toast.success("Pedido generado con éxito")
+      setSelectedProducts([])
+      getBuyingRecords()
     }
     else{
       toast.error("Ha ocurrido un error")
@@ -151,7 +151,7 @@ const generateOrder = async () => {
         ></a>
         <ul className="flex flex-wrap justify-center">
           {products.length > 0 ? (
-            products.map((product) => {
+            products.filter(product => product.quantity && product.quantity > product.min_stock).map((product) => {
               return (
                 <li
                   key={product?.id}
@@ -173,7 +173,10 @@ const generateOrder = async () => {
                             (p) => p.id === product.id
                           );
                           if (productIndex === -1) {
-                            return [...prev, product];
+                            return [...prev, {
+                              ...product,
+                              quantity: 1,
+                            }];
                           } else {
                             return prev.filter((p) => p.id !== product.id);
                           }
@@ -221,7 +224,20 @@ const generateOrder = async () => {
         >
             <ShoppingBagIcon />
         </IconButton> 
-      <Drawer anchor="right" open={showProductCart} onClose={() => setShowProductCart(false)}>
+        <DrawerCart
+          showProductCart={showProductCart}
+          setShowProductCart={setShowProductCart}
+          selectedProducts={selectedProducts}
+          setSelectedProducts={setSelectedProducts}
+          setShowPreviousPurchaseProducts={setShowPreviousPurchaseProducts}
+          products={products}
+        />
+    </main>
+  );
+}
+
+export const DrawerCart = ({ showProductCart, setShowProductCart, selectedProducts, setSelectedProducts, setShowPreviousPurchaseProducts, products }) => {
+  return       <Drawer anchor="right" open={showProductCart} onClose={() => setShowProductCart(false)}>
         <div className="w-[30rem] h-full flex flex-col p-5">
           <h2 className="text-center">Carrito de compras</h2>
           <List className="flex flex-col gap-5">
@@ -247,16 +263,32 @@ const generateOrder = async () => {
                     className="w-20 h-20 object-fit border p-2"
                   />
                   <div className="flex gap-2 items-center">
-                  <ListItemText primary={product.name} secondary={"BS."+product.sell_price}></ListItemText>
-                  <NumericSelector value={product.quantity} onChange={(value) => {
-                    setSelectedProducts((prev) => {
-                      const productIndex = prev.findIndex((p) => p.id === product.id);
-                      prev[productIndex].quantity = value;
-                      return [...prev];
-                    });
+                  <ListItemText sx={{mr:2}} primary={product.name} secondary={<>
+                    {
+                    "BS."+product.sell_price 
+                    }
+                    <br />
+                    {
+                    "Stock actual: "+(products?.find(p => p.id == product.id).quantity || 0)
+                    }
+                    </>}></ListItemText>
+                  {/* <ListItemText secondary={}></ListItemText> */}
+                  <NumericSelector initialValue={1} value={product.quantity > 0 ? product.quantity : 1} max={(products?.find(p => p.id == product.id).quantity) ||0} min={1} onChange={(value) => {
+                    if (value > 0){
+                      setSelectedProducts((prev) => {
+                        const productIndex = prev.findIndex((p) => p.id === product.id);
+                        const newProductData= {
+                          ...prev[productIndex],
+                          quantity: value,
+                        };
+                        const newProducts = [...prev];
+                        newProducts[productIndex] = newProductData;
+                        return newProducts; 
+                      });
+                    }
                   }
                   } />
-                  <Typography sx={{color:"green"}}>{"BS."+product.sell_price * product.quantity}</Typography>
+                  <Typography sx={{color:"green"}}>{"BS."+((product.sell_price || 0) * (product.quantity || 0))}</Typography>
                   </div>
                 </ListItem>
               );
@@ -275,8 +307,6 @@ const generateOrder = async () => {
           </Button>}
         </div>
       </Drawer>
-    </main>
-  );
 }
 
 export const ProductDetail = () => {

@@ -33,7 +33,7 @@ const StyledTextField = styled(TextField)({
   },
 });
 
-const NumericSelector = ({ initialValue = 0, min = 0, max = 100, onChange }) => {
+const NumericSelector = ({ initialValue = 1, min = 1, max = 100, onChange }) => {
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
@@ -41,7 +41,6 @@ const NumericSelector = ({ initialValue = 0, min = 0, max = 100, onChange }) => 
   }, [value, onChange]);
 
   const handleChange = (event) => {
-    console.log("ENTRANDO ACA")
     const newValue = parseInt(event.target.value, 10);
     if (!isNaN(newValue) && newValue >= min && newValue <= max) {
       setValue(newValue);
@@ -72,7 +71,7 @@ const NumericSelector = ({ initialValue = 0, min = 0, max = 100, onChange }) => 
         value={value}
         onChange={handleChange}
         variant="standard"
-        inputProps={{ min, max, type: 'number' }}
+        inputProps={{ min, max, type: 'number', defaultValue: initialValue }}
       />
       <StyledIconButton onClick={handleIncrement} disabled={value >= max} size="small">
         <AddIcon fontSize="small" />

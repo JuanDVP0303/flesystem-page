@@ -42,7 +42,7 @@ const Admin = () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement("a");
         link.href = url;
-        link.setAttribute("download", `audit_logs.xlsx`);
+        link.setAttribute("download", `registros_auditorias.xlsx`);
         document.body.appendChild(link);
         link.click();
     } catch (error) {
@@ -58,7 +58,7 @@ const Admin = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'database_export.sql';
+      a.download = 'base_de_datos_respaldo.sql';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -124,7 +124,7 @@ const Admin = () => {
       const link = document.createElement("a");
       link.href = url;
       const today = moment()
-      const download_name = `low_stock_products_${today.format('YYYY-MM-DD')}.xlsx`;
+      const download_name = `productos_stock_bajo_${today.format('YYYY-MM-DD')}.xlsx`;
       link.download = download_name
       document.body.appendChild(link);
       link.click();

@@ -21,12 +21,28 @@ export const BuyingRecordProvider = ({ children }) => {
     const updateOrderStatus = async (orderId, newStatus, paymentMethod, paymentRef) => {
         try {
             const formData = new FormData();
+            if(!paymentMethod){
+                toast.error('Selecciona un método de pago');
+                return;
+            }
+            if(paymentMethod !="effective" && !paymentRef){
+                toast.error('Agrega el comprobante de pago');
+                return;
+            }
             formData.append('status', newStatus);
             formData.append('payment_method', paymentMethod);
             formData.append('payment_ref', paymentRef);
             const response = await api.patch(`/buying/records/${orderId}/update-status/`, formData);
             if (response.status === 200) {
                 toast.success('Estado del pedido actualizado correctamente');
+            }
+            else{
+                console.log("error,", response)
+                const errorData = response.data
+                for (let key in errorData) {
+                    const message = errorData[key];
+                    toast.error(message);
+                }
             }
             // Actualizar el estado local si es necesario
             setBuyingRecords(prevRecords => 

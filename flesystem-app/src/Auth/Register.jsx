@@ -17,7 +17,8 @@ const fieldsObj = {
   phone: 'Teléfono',
   type_of_document: 'Tipo de documento',
   document: 'Cédula',
-  password: 'Contraseña'
+  password: 'Contraseña',
+  account:"una cuenta"
 };
 
 function RegisterBrain({isAdmin}) {
@@ -31,10 +32,38 @@ function RegisterBrain({isAdmin}) {
       toast.error('Selecciona el tipo de usuario');
       return
     }
+    const birthdate = formData.get('birthdate');
+    if (!birthdate) {
+      toast.error('La fecha de nacimiento es requerida');
+      return;
+    }
+  
+    // Cálculo de edad
+    const today = new Date();
+    const birthDate = new Date(birthdate);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (
+      monthDiff < 0 || 
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+    
+    if (age < 18) {
+      toast.error('Debes ser mayor de 18 años para registrarte');
+      return;
+    }
     formData.set(
       'document',
       `${formData.get('type_of_document')}-${formData.get('document')}`
     );
+
+    if(formData.get("document").length < 7){
+      toast.error('El número de cédula es inválido');
+      return
+    }
 
     console.log(Object.fromEntries(formData));
     let res;
@@ -51,7 +80,7 @@ function RegisterBrain({isAdmin}) {
       if(res.status !== 201){
         console.log(res);
         for (const key in res.data) {
-          toast.error(`${fieldsObj[key] ?? 'Campo'}: ${res.data[key]}`);
+          toast.error(`${fieldsObj[key] ?? 'Campo'}: ${res.data[key][0]?.replace("account", "una cuenta").replace(key, fieldsObj[key])}`);
         }
       }
       if(isAdmin){
@@ -62,7 +91,7 @@ function RegisterBrain({isAdmin}) {
       console.log(err);
       const detailObj = err.response.data;
       for (const key in detailObj) {
-        toast.error(`${fieldsObj[key] ?? 'Campo'}: ${detailObj[key]}`);
+        toast.error(`${fieldsObj[key] ?? 'Campo'}: ${detailObj[key].replace("account", "una cuenta")}`);
       }
     }
   };
@@ -99,7 +128,16 @@ function Register({ formRef, registerUser, isAdmin }) {
         </>}
         
         <TextField fullWidth label="E-mail" variant="outlined" name="email" required />
-        
+        <TextField
+          fullWidth
+          label="Fecha de nacimiento"
+          type="date"
+          name="birthdate"
+          required
+          InputLabelProps={{
+            shrink: true,
+          }}
+        />
         {/* RIF - Solo numérico */}
         <TextField
           fullWidth
@@ -150,6 +188,12 @@ function Register({ formRef, registerUser, isAdmin }) {
             fullWidth
             sx={{ width: '85%' }}
             label="Cédula"
+            type="text"
+            inputProps={{
+              maxLength: 8,
+              inputMode: 'numeric', // Muestra teclado numérico en móviles
+              pattern: '[0-9]*' // Solo permite números
+            }}
             variant="outlined"
             name="document"
             required

@@ -56,11 +56,17 @@ const OperatorDashboard = () => {
   };
 
   const handleUpdateStatus = async (orderId, newStatus) => {
-    await updateOrderStatus(orderId, newStatus, paymentMethod, paymentRef);
-    getBuyingRecords();
-    handleCloseDialog();
-    setPaymentMethod('');
-    setPaymentRef('');
+    try{
+      const response = await updateOrderStatus(orderId, newStatus, paymentMethod, paymentRef);
+      console.log("Response", response);
+      getBuyingRecords();
+      handleCloseDialog();
+      setPaymentMethod('');
+      setPaymentRef('');
+    }
+    catch (error) {
+      console.log("AAAA", error)
+    }
   };
 
 
@@ -168,7 +174,7 @@ const OperatorDashboard = () => {
             </Select>
             
           </FormControl>
-          <DragAndDropBox
+          {paymentMethod != "effective" && <DragAndDropBox
             setFieldValue={(file) => {
               setPaymentRef(file);
             }}
@@ -179,7 +185,7 @@ const OperatorDashboard = () => {
             value={paymentRef}
             width={160}
             height={160}
-          />
+          />}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cerrar</Button>

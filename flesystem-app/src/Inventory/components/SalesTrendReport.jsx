@@ -76,7 +76,7 @@ export default function SalesTrendsReport() {
             const a = document.createElement('a');
             a.href = url;
             const format_file = format === 'excel' ? 'xlsx' : format;
-            a.download = `sales-trends-report.${format_file}`;
+            a.download = `reportes_tendencias_compras.${format_file}`;
             a.click();
             window.URL.revokeObjectURL(url);
         } catch (error) {

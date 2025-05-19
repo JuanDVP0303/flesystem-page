@@ -158,7 +158,7 @@ const handleWhatsAppClick = () => {
                     </Select>
                     
                   </FormControl>
-                  <DragAndDropBox
+                 {paymentMethod != "effective" && <DragAndDropBox
                       disabled
 
                     setFieldValue={(file) => {}}
@@ -167,7 +167,7 @@ const handleWhatsAppClick = () => {
                     value={paymentRef}
                     width={160}
                     height={160}
-                  />
+                  />}
         {console.log(authenticatedUser.id, record?.user?.id)}
    {authenticatedUser.id == record?.user?.id && <Button
                 variant="contained"
