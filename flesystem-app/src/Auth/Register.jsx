@@ -51,6 +51,12 @@ function RegisterBrain({isAdmin}) {
       age--;
     }
     
+    //Validar que el año sea menor al año actual
+    if (birthDate.getFullYear() > today.getFullYear()) {
+      toast.error('La fecha de nacimiento no puede ser mayor al año actual');
+      return;
+    }
+
     if (age < 18) {
       toast.error('Debes ser mayor de 18 años para registrarte');
       return;
