@@ -157,7 +157,7 @@ const OperatorDashboard = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          <FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
+{paymentMethod &&<FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
             <InputLabel id="payment-method-label">Método de pago</InputLabel>
             <Select
               labelId="payment-method-label"
@@ -173,8 +173,8 @@ const OperatorDashboard = () => {
               <MenuItem value="movil_pay">Pago Móvil</MenuItem>
             </Select>
             
-          </FormControl>
-          {paymentMethod != "effective" && <DragAndDropBox
+          </FormControl>}
+          {paymentMethod && paymentMethod != "effective" && paymentRef && <DragAndDropBox
             setFieldValue={(file) => {
               setPaymentRef(file);
             }}

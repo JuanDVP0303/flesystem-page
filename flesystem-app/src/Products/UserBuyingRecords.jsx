@@ -141,7 +141,7 @@ const handleWhatsAppClick = () => {
             ))}
           </TableBody>
         </Table>
-                  <FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
+                  {paymentMethod && <FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
                     <InputLabel id="payment-method-label">Método de pago</InputLabel>
                     <Select
                       labelId="payment-method-label"
@@ -157,8 +157,8 @@ const handleWhatsAppClick = () => {
                       <MenuItem value="movil_pay">Pago Móvil</MenuItem>
                     </Select>
                     
-                  </FormControl>
-                 {paymentMethod != "effective" && <DragAndDropBox
+                  </FormControl>}
+                 {paymentMethod && paymentMethod != "effective" && paymentRef && <DragAndDropBox
                       disabled
 
                     setFieldValue={(file) => {}}
