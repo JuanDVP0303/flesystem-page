@@ -58,6 +58,30 @@ const ProductView = () => {
 
   const handleSubmitEdit = async (e) => {
     e.preventDefault()
+    if(!productEdited?.min_stock){
+      toast.error("El stock mínimo es requerido")
+      return
+    }
+    if(!productEdited?.max_stock){
+      toast.error("El stock máximo es requerido")
+      return
+    }
+    if(productEdited?.min_stock > productEdited?.max_stock){
+      toast.error("El stock mínimo no puede ser mayor al máximo")
+      return
+    }
+    if(productEdited?.min_stock <= 0){
+      toast.error("El stock mínimo no puede ser menor o igual a 0")
+      return
+    }
+    if(productEdited?.max_stock <= 0){
+      toast.error("El stock máximo no puede ser menor o igual a 0")
+      return
+    }
+    if(productEdited?.min_stock == productEdited?.max_stock){
+      toast.error("El stock mínimo no puede ser igual al máximo")
+      return
+    }
     const res = await editProductFunction(productEdited, productId)
     setProductEdited(res.data);
     setEditProduct(false);
@@ -182,11 +206,6 @@ export const EditButton = ({onClick, small}) => {
 }
 
 export const EditModalForm = ({ handleProductChange, product, editProduct, setEditProduct, setProductEdited, productEdited, handleSubmit, isBatch }) =>{
-  const handleExpirationToggle = () => {
-    setProductEdited((prev) => {
-      return { ...prev, expirationEnabled: !prev.expirationEnabled };
-    });
-  }
   return <ModalComponent
   fullWidth={isBatch}
   title={product?.name}
