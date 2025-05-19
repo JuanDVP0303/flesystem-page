@@ -135,9 +135,7 @@ const ProductView = () => {
             </div>
             <div className="flex gap-2 items-start">
 
-            {!authenticatedUser.is_superuser &&
             <EditButton onClick={() => setEditProduct(true)} />
-            }
             </div>
           </Box>
             <div className="flex-1 flex flex-col gap-4 m-4">
@@ -146,7 +144,7 @@ const ProductView = () => {
         ): <h1>Cargando...</h1>}
       </MiniCard>
         <EditModalForm handleSubmit={handleSubmitEdit} handleProductChange={handleProductChange} product={product} editProduct={editProduct} setEditProduct={setEditProduct} productEdited={productEdited}  setProductEdited={setProductEdited}/>
-      {
+      {/* {
         product?.batches?.length > 0 ? <div className="flex flex-wrap gap-4">
           {product?.batches.map((batch, index) => {
             return ( 
@@ -156,7 +154,7 @@ const ProductView = () => {
             );
           })}
         </div> : null
-      }
+      } */}
 
     </Box>
   );
@@ -220,7 +218,29 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           placeholder="Ex:. PRODUCTO"
         />
       </GridField>
-      <GridField>
+       <GridField>
+          <FieldGroup
+            onChange={handleProductChange}
+            value={productEdited?.max_stock}
+            label="Stock Máximo"
+            disabled={!productEdited?.max_stock}
+            name="max_stock"
+            optional={true}
+            numeric={true}
+            placeholder="Ex:. 100..."
+          />
+          <FieldGroup
+            onChange={handleProductChange}
+            value={productEdited?.min_stock}
+            label="Stock Mínimo"
+            numeric={true}
+            // disabled={!productEdited?.min_stock}
+            name="min_stock"
+            optional={true}
+            placeholder="Ex:. 10..."
+          />
+       </GridField>
+    </Grid>
         <FieldGroup
           onChange={handleProductChange}
           value={productEdited?.category}
@@ -230,18 +250,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           optional={true}
           placeholder="Ex:. Vestimenta..."
         />
-        <FieldGroup
-          onChange={handleProductChange}
-          value={productEdited?.safety_stock}
-          label="Stock de seguridad"
-          numeric={true}
-          // disabled={!productEdited?.safety_stock}
-          name="safety_stock"
-          optional={true}
-          placeholder="Ex:. Vestimenta..."
-        />
-      </GridField>
-    </Grid>
+
     <FieldGroup
       onChange={handleProductChange}
       value={productEdited?.description}
