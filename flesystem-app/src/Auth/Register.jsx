@@ -71,7 +71,7 @@ function RegisterBrain({isAdmin}) {
       return
     }
 
-    if(formData.get("tipo_persona") === "juridica" && formData.get("document").length < 12){
+    if(formData.get("tipo_persona") === "juridica" && formData.get("document").length < 11){
       toast.error('El número de RIF es inválido');
       return
     }
