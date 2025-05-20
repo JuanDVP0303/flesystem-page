@@ -191,9 +191,8 @@ class UsersViewset(APIView):
             serializer = AccountSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
         if request.user.is_superuser:
-            users = Account.objects.all().exclude(is_subsidiary=True).exclude(id=request.user.id)
-            users_pf = Account.objects.filter(is_pf=True).exclude(id=request.user.id)
-            users = users.union(users_pf)
+            print("OBTENIENDO USUARIOS")
+            users = Account.objects.all().exclude(id=request.user.id)
             serializer = AccountSerializer(users, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:

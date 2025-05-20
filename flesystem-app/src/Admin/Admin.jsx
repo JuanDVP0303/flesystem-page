@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { MiniCard } from "../Inventory/Inventory";
-import { Box, Button, Dialog, FormControl, formControlClasses, IconButton, InputLabel, List, ListItem, ListItemText, MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Typography } from "@mui/material";
+import { Box, Button, Dialog, FormControl, formControlClasses, IconButton, InputLabel, List, ListItem, ListItemText, MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TableSortLabel, TextField, Typography } from "@mui/material";
 import { useAdminContext } from "../hooks/useAdminContext";
 import WarningIcon from '@mui/icons-material/Warning';
 import { usePurchaseContext } from "../hooks/usePurchasesContext";
@@ -21,13 +21,14 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import HistoryIcon from '@mui/icons-material/History';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import MenuIcon from '@mui/icons-material/Menu';
+import PersonIcon from '@mui/icons-material/Person';
 import { GenericButton } from "../Inventory/components/Buttons";
 const Admin = () => {
   const {getMinStockProducts, minStockProducts} = useAdminContext()
   const { buyingRecords, getBuyingRecords } = useBuyingRecordContext();
   const {authenticatedUser} = useGlobalContext()
-
   const {createPurchase} = usePurchaseContext()
+  const [userList, setUserList] = useState([])
   const [productPriceUnit, setProductPriceUnit] = useState(0)
   const [openPriceUnitModal, setOpenPriceUnitModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
@@ -37,14 +38,27 @@ const Admin = () => {
   const sections = [
     { id: 'stock', label: 'Stock y Pedidos', icon: <InventoryIcon />, condition:true },
     { id: 'audit', label: 'Auditoría', icon: <HistoryIcon />, condition: authenticatedUser.is_superuser },
-    { id: 'register', label: 'Registro de Usuarios', icon: <PersonAddIcon />, condition: authenticatedUser.is_superuser }
+    { id: 'register', label: 'Registro de Usuarios', icon: <PersonAddIcon />, condition: authenticatedUser.is_superuser },
+    { id: 'users', label: 'Lista de usuarios', icon: <PersonIcon />, condition: authenticatedUser.is_superuser },
   ];
+
+
+  const getAllUsers = async () => {
+    try{
+      const response = await api.get('/users/users/');
+      console.log("DASDADASD", response)
+      setUserList(response.data);
+    }catch(e){
+      toast.error("Error al obtener los usuarios")
+    }
+    //const response = await api.get('/users/');
+    //setUserList(response.data);
+  }
 
   const getAuditLog = async () => {
     try {
       const response = await api.get('/users/admin/audit-log/');
       setAuditLog(response.data);
-      console.log('Audit log:', response.data);
     } catch (error) {
       console.error('Error al obtener el log de auditoría:', error);
     }
@@ -64,6 +78,8 @@ const Admin = () => {
         console.error("Error al exportar las compras completadas:", error);
     }
   }
+
+
 
   const exportDatabase = async () => {
     try {
@@ -103,6 +119,11 @@ const Admin = () => {
     getAuditLog()
   }, [])
 
+  useEffect(() => {
+    if(authenticatedUser.is_superuser){
+      getAllUsers()
+    }
+  }, [authenticatedUser])
 
   const downloadManual = async (type) => {
     try {
@@ -355,6 +376,15 @@ const Admin = () => {
           {activeSection == "register" &&<Box sx={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "10px", flex:1, backgroundColor: "#fdfdfd"}}>
               <RegisterBrain isAdmin/>
           </Box>}
+          {activeSection === "users" && (
+          <Box sx={{ marginTop: 2 }}>
+            <Typography variant="h5" gutterBottom>
+              Lista de Usuarios Registrados
+            </Typography>
+            <UsersTable users={userList} />
+          </Box>
+        )}
+
         
       </MiniCard>
 
@@ -513,8 +543,129 @@ const AuditTable = ({ auditLogs }) => {
     </Box>
   );
 };
+
+const UsersTable = ({ users }) => {
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [order, setOrder] = useState('asc');
+  const [orderBy, setOrderBy] = useState('email');
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const sortedUsers = users.slice().sort((a, b) => {
+    if (order === 'asc') {
+      return a[orderBy] > b[orderBy] ? 1 : -1;
+    }
+    return a[orderBy] < b[orderBy] ? 1 : -1;
+  });
+
+  const getTipoUsuario = (user) => {
+    if (user.is_superuser) return 'Administrador';
+    switch (user.kind_of_person) {
+      case 'client': return 'Cliente';
+      case 'operator': return 'Operador';
+      case 'user': return 'Usuario';
+      default: return 'Sin especificar';
+    }
+  };
+
+  const getIdentificacion = (user) => {
+    if (user.document) return `Documento: ${user.document}`;
+    if (user.rif) return `RIF: ${user.rif}`;
+    return 'Sin registro';
+  };
+
+  return (
+    <Box>
+      <TableContainer component={Paper}>
+        <Table sx={{ minWidth: 650 }} aria-label="Tabla de usuarios">
+          <TableHead>
+            <TableRow>
+              <TableCell sortDirection={orderBy === 'email' ? order : false}>
+                <TableSortLabel
+                  active={orderBy === 'email'}
+                  direction={orderBy === 'email' ? order : 'asc'}
+                  onClick={() => handleRequestSort('email')}
+                >
+                  Email
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>Tipo de Usuario</TableCell>
+              <TableCell>Identificación</TableCell>
+              <TableCell>Teléfono</TableCell>
+              <TableCell sortDirection={orderBy === 'created_at' ? order : false}>
+                <TableSortLabel
+                  active={orderBy === 'created_at'}
+                  direction={orderBy === 'created_at' ? order : 'asc'}
+                  onClick={() => handleRequestSort('created_at')}
+                >
+                  Fecha de Registro
+                </TableSortLabel>
+              </TableCell>
+              {/* <TableCell>Estado</TableCell> */}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sortedUsers
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{getTipoUsuario(user)}</TableCell>
+                  <TableCell>{getIdentificacion(user)}</TableCell>
+                  <TableCell>{user.phone || 'No registrado'}</TableCell>
+                  <TableCell>
+                    {moment(user.created_at).format('DD/MM/YYYY HH:mm')}
+                  </TableCell>
+                  {/* <TableCell>
+                    <Box
+                      sx={{
+                        backgroundColor: user.is_active ? '#e8f5e9' : '#ffebee',
+                        color: user.is_active ? '#2e7d32' : '#c62828',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        display: 'inline-block'
+                      }}
+                    >
+                      {user.is_active ? 'Activo' : 'Inactivo'}
+                    </Box>
+                  </TableCell> */}
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={users.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        labelRowsPerPage="Filas por página:"
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+      />
+    </Box>
+  );
+};
+
 AuditTable.propTypes = {
   auditLogs: []
 }
 
 export default Admin;
+
