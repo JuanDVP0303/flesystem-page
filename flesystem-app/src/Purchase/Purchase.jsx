@@ -101,6 +101,7 @@ const Purchase = () => {
               data={orders.map(order => {
                 return {
                   ...order,
+                  total_cost: `Bs.${order.total_cost.toFixed(2)}`,
                   status: (
                     <Box className={`${
                       order.status === "COMPLETED" ? "bg-green-500" :
