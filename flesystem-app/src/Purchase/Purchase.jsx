@@ -591,7 +591,7 @@ const ProvidersView = ({ state }) => {
               padding: 2,
             }}>
           <Box>
-            <ProductTable products={providerProducts?.length > 0 ? providerProducts : []} />
+            <ProductTable isProvider={true} products={providerProducts?.length > 0 ? providerProducts : []} />
           </Box>
           </Card>
           </ModalComponent>

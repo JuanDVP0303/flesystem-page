@@ -1,4 +1,4 @@
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material'
+import { Box, Button, Dialog, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
 import { useState } from 'react'
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { useParams } from 'react-router-dom';
@@ -8,9 +8,28 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { genericBlue } from '../Inventory';
 const emptyValue = "---"
 import propTypes from "prop-types"
+import { usePurchaseContext } from '../../hooks/usePurchasesContext';
 
+import CloseIcon from '@mui/icons-material/Close';
 
-const ProductTable = ({products}) => {
+const ProductTable = ({products, isProvider}) => {
+      const [openPriceUnitModal, setOpenPriceUnitModal] = useState(false)
+    const [selectedProduct, setSelectedProduct] = useState(null)
+    const [productPriceUnit, setProductPriceUnit] = useState(0)
+    const {createPurchase} = usePurchaseContext()
+    console.log(selectedProduct)
+    const generatePurchase = (product) => {
+      console.log({...product, id: product.id})
+    createPurchase({
+      product: {...product, id: product.id},
+      quantity: product.max_stock - product.quantity,
+      provider: product.provider,
+      price_unit: productPriceUnit,
+      purchase_date:new Date().toISOString().split("T")[0]
+
+    })
+  }
+
   return (
     <TableContainer sx={{
       width:{
@@ -19,6 +38,41 @@ const ProductTable = ({products}) => {
         md:"100%",
       }
     }}>
+      
+            <Dialog open={openPriceUnitModal} onClose={() => {
+              setOpenPriceUnitModal(false)
+              setSelectedProduct(null)
+            }}>
+              
+              <Box sx={{p:2}}>
+                <Box sx={{mb:2, display:"flex", justifyContent:"flex-end"}}>
+                <IconButton onClick={() => {
+                  setOpenPriceUnitModal(false)
+                  setSelectedProduct(null)
+                }}><CloseIcon /></IconButton>
+                </Box>
+                <Box sx ={{
+                  display:"flex",
+                  flexDirection:"column",
+                  gap:2
+                }}>
+                  {console.log(selectedProduct)}
+                <Typography variant="h6" >Precio unitario para {selectedProduct?.product_name}</Typography>
+                <Typography variant="body2" sx={{color:"gray"}}>Actual precio de venta: {selectedProduct?.sell_price} </Typography>
+                <Typography variant="body2" sx={{color:"gray"}}>Último precio de compra: {(selectedProduct?.last_completed_order_price_unit) || 0} </Typography>
+                <TextField
+                  label="Precio unitario" 
+                  type="number" 
+                  value={productPriceUnit} 
+                  onChange={(e) => setProductPriceUnit(e.target.value)}
+                />
+                <Button variant="contained" color="primary" onClick={() => {
+                  generatePurchase(selectedProduct)
+                  setOpenPriceUnitModal(false)
+                }}>Aceptar</Button>
+                </Box>
+              </Box>
+            </Dialog>
     <Table className="min-w-full">
       <TableHead>
         <TableRow>
@@ -30,13 +84,15 @@ const ProductTable = ({products}) => {
           <TableCell>Cantidad</TableCell>
           <TableCell>Valor en inventario</TableCell>
           <TableCell>Precio de venta</TableCell>
-          <TableCell></TableCell>
+         {
+          isProvider&&  <TableCell>Acción</TableCell>
+         }
 
         </TableRow>
       </TableHead>
       <TableBody>
         {products?.length > 0 ? products.map((product, index) => (
-          <ProductTableRow key={index} product={product} />
+          <ProductTableRow isProvider={isProvider} key={index} product={product} setSelectedProduct={setSelectedProduct} setOpenPriceUnitModal={setOpenPriceUnitModal} />
         ))  :
         <TableRow>
         <TableCell colSpan={12} sx={{fontSize:"15px"}}>No hay productos en inventario</TableCell>
@@ -47,12 +103,14 @@ const ProductTable = ({products}) => {
     </TableContainer>
   )
 }
-const ProductTableRow = ({ product }) => {
+const ProductTableRow = ({ product, isProvider, setSelectedProduct, setOpenPriceUnitModal }) => {
     const {goTo} = useGoTo();
     const {id} = useParams();
+
     const [showVariations, setShowVariations] = useState(false);
     return (
       <>
+
       <TableRow>
         <TableCell style={{ width: 5 }}>
         {product.variants.length > 0 && 
@@ -70,6 +128,15 @@ const ProductTableRow = ({ product }) => {
         <TableCell>
           <VisibilityIcon onClick={() => goTo(`/inventory/products/${product.id}/`)} sx={{color:genericBlue, width:18, cursor:"pointer"}}/>
         </TableCell>
+        {
+          isProvider && <TableCell>
+            <Button onClick={() => {
+              setSelectedProduct(product);
+              setOpenPriceUnitModal(true);
+            }} variant='contained' color='success' size='small'>Comprar</Button>
+          </TableCell>
+        }
+        
       </TableRow>
      {showVariations && product.variants.length > 0 && product.variants.map((variation, index) => {
         return (
@@ -84,6 +151,7 @@ const ProductTableRow = ({ product }) => {
             <TableCell>{variation.quantity}</TableCell>
             <TableCell>{formatNumber(variation.quantity * variation.price_unit)}</TableCell>
             <TableCell>{formatNumber(variation.sell_price)}</TableCell>
+
           </TableRow>
         )
      })}
