@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
 from .models import Inventory, Product, Movement, ProductBatch
-from buying.models import BuyingRecords, BuyingRecordsProducts
+from purchase.models import Order
 from .serializer import ProductBatchSerializer, ProductSerializer, MovementSerializer
 from rest_framework.decorators import action
 # from operators.models import Operator
@@ -333,6 +333,10 @@ class ProductsViewset(viewsets.ModelViewSet):
             print("TOTAL", total_quantity, product.min_stock)
             if not product.min_stock:
                 continue
+            last_completed_order_price_unit = Order.objects.filter(
+                product=product,
+                status="COMPLETED"
+            ).order_by('-created_at').values('price_unit').first()
             if total_quantity <= product.min_stock + 5:
                 min_stock_products.append({
                     'product_name': product.name,
@@ -342,6 +346,7 @@ class ProductsViewset(viewsets.ModelViewSet):
                     'product_id': product.id,
                     'provider_id': product.provider.id,
                     'sell_price': product.sell_price,
+                    'last_completed_order_price_unit': last_completed_order_price_unit.get('price_unit') if last_completed_order_price_unit else 0,
                 })        
         
         return Response(min_stock_products, status=status.HTTP_200_OK)
