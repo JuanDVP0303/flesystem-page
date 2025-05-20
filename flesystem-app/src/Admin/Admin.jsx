@@ -13,7 +13,15 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { toast } from "react-toastify";
 import RegisterBrain from "../Auth/Register";
 import moment from "moment";
-
+import Drawer from '@mui/material/Drawer';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import HistoryIcon from '@mui/icons-material/History';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import MenuIcon from '@mui/icons-material/Menu';
+import { GenericButton } from "../Inventory/components/Buttons";
 const Admin = () => {
   const {getMinStockProducts, minStockProducts} = useAdminContext()
   const { buyingRecords, getBuyingRecords } = useBuyingRecordContext();
@@ -24,6 +32,13 @@ const Admin = () => {
   const [openPriceUnitModal, setOpenPriceUnitModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [auditLog, setAuditLog] = useState([])
+  const [activeSection, setActiveSection] = useState('stock'); // 'stock', 'audit', 'register'
+  const [openSection, setOpenSection] = useState(false);
+  const sections = [
+    { id: 'stock', label: 'Stock y Pedidos', icon: <InventoryIcon />, condition:true },
+    { id: 'audit', label: 'Auditoría', icon: <HistoryIcon />, condition: authenticatedUser.is_superuser },
+    { id: 'register', label: 'Registro de Usuarios', icon: <PersonAddIcon />, condition: authenticatedUser.is_superuser }
+  ];
 
   const getAuditLog = async () => {
     try {
@@ -150,7 +165,58 @@ const Admin = () => {
         margin: "auto",
       }}
     >
-      
+      <Drawer
+        open={openSection}
+        onClose={() => setOpenSection(false)}
+        sx={{
+          width: 240,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: 240,
+            boxSizing: 'border-box',
+          },
+        }}
+      >
+        <Box sx={{ p: 2, borderBottom: '1px solid #ddd' }}>
+          <Typography variant="h6">Panel de Administración</Typography>
+        </Box>
+        <List>
+          {sections.filter(s => s.condition).map((section) => (
+            <ListItem key={section.id} disablePadding>
+              <ListItemButton
+                selected={activeSection === section.id}
+                onClick={() => setActiveSection(section.id)}
+              >
+                <ListItemIcon>{section.icon}</ListItemIcon>
+                <ListItemText primary={section.label} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+        <Box sx={{ p: 2, mt: 'auto', borderTop: '1px solid #ddd' }}>
+       {authenticatedUser.is_superuser &&<Button
+            fullWidth
+            variant="contained"
+            color="success"
+            startIcon={<DownloadIcon />}
+            onClick={exportDatabase}
+          >
+            Exportar BD
+          </Button>}
+          <Button
+            fullWidth
+            sx={{ mt: 2 }}
+            variant="contained"
+            color="secondary"
+            startIcon={<DownloadIcon />}
+            onClick={() => downloadManual(authenticatedUser.is_superuser ? "admin" : "operator")}
+          >
+            Descargar Manual
+          </Button>
+        </Box>
+      </Drawer>
+
+
       <Dialog open={openPriceUnitModal} onClose={() => {
         setOpenPriceUnitModal(false)
         setSelectedProduct(null)
@@ -184,6 +250,11 @@ const Admin = () => {
         </Box>
       </Dialog>
       <MiniCard className={"max-w-full flex"}>
+      {authenticatedUser.is_superuser && <Box sx={{ display: "flex", m:2, justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+      <GenericButton small={true} onClick={() => setOpenSection(true)} label={<>
+          <MenuIcon/>
+      </>}  />
+      </Box>}
         <Box sx={{marginBottom:5}}>
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p>Esta es la sección de {
@@ -195,7 +266,7 @@ const Admin = () => {
           marginBottom:2
         }}>
 
-        {authenticatedUser.is_superuser && (
+        {/* {authenticatedUser.is_superuser && (
             <Button
               variant="contained"
               color="success"
@@ -204,8 +275,8 @@ const Admin = () => {
             >
               Exportar Base de Datos
             </Button>
-          )}
-          {
+          )} */}
+          {/* {
             authenticatedUser.is_superuser ? <>
               <Button
               sx={{marginLeft:2}}
@@ -232,9 +303,9 @@ const Admin = () => {
                 Descargar Manual de Operador
               </Button>
             </>
-          }
+          } */}
         </Box>
-        <Box sx={{display:"flex", gap:5}}>
+      {activeSection == "stock" && <Box sx={{display:"flex", gap:5}}>
           <Box sx={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "10px", flex:1, backgroundColor: "#fdfdfd"}}>
             <Typography variant="h6">Productos con stock bajo</Typography>
             <Button variant="contained" color="success" onClick={downloadLowStockProducts} 
@@ -261,8 +332,8 @@ const Admin = () => {
           <Box sx={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "10px", flex:1, backgroundColor: "#fdfdfd"}}>
               <OrderStatusDashboard />
           </Box>
-        </Box>
-        {authenticatedUser.is_superuser && <>
+        </Box>}
+        {authenticatedUser.is_superuser && activeSection == "audit" && <>
           <Box sx={{ marginTop:5, border: "1px solid #ccc", padding: "1rem", borderRadius: "10px", flex:1, backgroundColor: "#fdfdfd"}}>
             <Typography variant="h6" sx={{
               marginBottom:2,
@@ -279,11 +350,11 @@ const Admin = () => {
             <AuditTable auditLogs={auditLog} />
           </Box>
           <Box sx={{display:"flex", gap:5, marginTop:5}}>
-          <Box sx={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "10px", flex:1, backgroundColor: "#fdfdfd"}}>
-              <RegisterBrain isAdmin/>
-          </Box>
         </Box>
         </>}
+          {activeSection == "register" &&<Box sx={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "10px", flex:1, backgroundColor: "#fdfdfd"}}>
+              <RegisterBrain isAdmin/>
+          </Box>}
         
       </MiniCard>
 

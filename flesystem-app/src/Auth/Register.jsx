@@ -1,7 +1,7 @@
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { api } from '../../src/utils/api';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 import { useGoTo } from '../../src/hooks/useGoTo';
@@ -71,6 +71,11 @@ function RegisterBrain({isAdmin}) {
       return
     }
 
+    if(formData.get("tipo_persona") === "juridica" && formData.get("document").length < 12){
+      toast.error('El número de RIF es inválido');
+      return
+    }
+
     console.log(Object.fromEntries(formData));
     let res;
     try {
@@ -88,6 +93,7 @@ function RegisterBrain({isAdmin}) {
         for (const key in res.data) {
           toast.error(`${fieldsObj[key] ?? 'Campo'}: ${res.data[key][0]?.replace("account", "una cuenta").replace(key, fieldsObj[key])}`);
         }
+        return
       }
       if(isAdmin){
         toast.success('Usuario creado correctamente');
@@ -109,7 +115,10 @@ function RegisterBrain({isAdmin}) {
   );
 }
 
+
 function Register({ formRef, registerUser, isAdmin }) {
+  const [personType, setPersonType] = useState('natural');
+
   return (
     <article>
       <form
@@ -123,16 +132,88 @@ function Register({ formRef, registerUser, isAdmin }) {
         <h2 className="title">{!isAdmin ? "Regístrate" : "Registra usuarios"}</h2>
         {isAdmin && <>
           <FormControl component="fieldset">
-          <FormLabel component="legend">Tipo de usuario</FormLabel>
-          <RadioGroup aria-label="kind_of_person" name="kind_of_person" defaultValue="client">
-            <Box sx={{display:"flex"}}>
-            <FormControlLabel value="client" control={<Radio />} label="Cliente" />
-            <FormControlLabel value="operator" control={<Radio />} label="Operador" />
-            </Box>
-          </RadioGroup>
-        </FormControl>
+            <FormLabel component="legend">Tipo de usuario</FormLabel>
+            <RadioGroup aria-label="kind_of_person" name="kind_of_person" defaultValue="client">
+              <Box sx={{display:"flex"}}>
+                <FormControlLabel value="client" control={<Radio />} label="Cliente" />
+                <FormControlLabel value="operator" control={<Radio />} label="Operador" />
+              </Box>
+            </RadioGroup>
+          </FormControl>
         </>}
         
+        {/* Nuevo RadioGroup para tipo de persona */}
+        <FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
+          <FormLabel component="legend">Tipo de Persona</FormLabel>
+          <RadioGroup 
+            row
+            aria-label="tipo-persona"
+            name="tipo_persona"
+            value={personType}
+            onChange={(e) => setPersonType(e.target.value)}
+          >
+            <FormControlLabel 
+              value="natural" 
+              control={<Radio />} 
+              label="Persona Natural" 
+            />
+            <FormControlLabel 
+              value="juridica" 
+              control={<Radio />} 
+              label="Persona Jurídica" 
+            />
+          </RadioGroup>
+        </FormControl>
+
+        {/* Campo oculto para type_of_document */}
+        <input 
+          type="hidden" 
+          name="type_of_document" 
+          value={personType === 'natural' ? 'V' : 'J'} 
+        />
+
+        {/* Campos condicionales según tipo de persona */}
+        {personType === 'natural' ? (
+          <Box display="flex" alignItems="center" width={'100%'} gap={1}>
+            <FormControl sx={{ width: '15%' }} variant="outlined">
+              <Select value="V" disabled>
+                <MenuItem value="V">V</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              sx={{ width: '85%' }}
+              label="Cédula"
+              name="document"
+              inputProps={{
+                maxLength: 8,
+                inputMode: 'numeric',
+                pattern: '[0-9]*'
+              }}
+              onInput={(e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+              }}
+              required
+            />
+          </Box>
+        ) : (
+          <TextField
+            fullWidth
+            label="RIF"
+            name="document"
+            inputProps={{
+              maxLength: 10,
+              inputMode: 'numeric',
+              pattern: '[0-9]*'
+            }}
+            onInput={(e) => {
+              e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            }}
+            required
+          />
+        )}
+
+        {/* Resto de campos... */}
         <TextField fullWidth label="E-mail" variant="outlined" name="email" required />
         <TextField
           fullWidth
@@ -140,75 +221,38 @@ function Register({ formRef, registerUser, isAdmin }) {
           type="date"
           name="birthdate"
           required
-          InputLabelProps={{
-            shrink: true,
-          }}
+          InputLabelProps={{ shrink: true }}
         />
-        {/* RIF - Solo numérico */}
-        <TextField
-          fullWidth
-          label="RIF"
-          variant="outlined"
-          name="rif"
-          required
-          inputProps={{
-            inputMode: 'numeric', // Muestra teclado numérico en móviles
-            pattern: '[0-9]*' // Solo permite números
-          }}
-          onInput={(e) => {
-            e.target.value = e.target.value.replace(/[^0-9]/g, ''); // Elimina caracteres no numéricos
-          }}
-        />
-
-        {/* Teléfono - Formato venezolano */}
+        
         <TextField
           fullWidth
           label="Teléfono"
-          variant="outlined"
           name="phone"
-          required
           placeholder="0424 1234567"
-          inputProps={{
-            maxLength: 12 // Limita la longitud del teléfono a "0424 1234567"
-          }}
+          inputProps={{ maxLength: 12 }}
           onInput={(e) => {
             e.target.value = e.target.value
-              .replace(/[^0-9]/g, '') // Solo permite números
-              .replace(/^(\d{4})(\d{0,7})$/, '$1 $2') // Aplica el formato "#### #######"
-              .trim(); // Elimina espacios innecesarios al final
+              .replace(/[^0-9]/g, '')
+              .replace(/^(\d{4})(\d{0,7})$/, '$1 $2')
+              .trim();
           }}
+          required
         />
 
-        <Box display="flex" alignItems="center" width={'100%'} gap={1}>
-          {/* Select con tamaño reducido */}
-          <FormControl sx={{ width: '15%' }} variant="outlined" required>
-            <InputLabel id="select-label">V</InputLabel>
-            <Select labelId="select-label" label="V" name="type_of_document">
-              <MenuItem value={'V'}>V</MenuItem>
-              <MenuItem value={'J'}>J</MenuItem>
-            </Select>
-          </FormControl>
-
-          {/* TextField con tamaño ampliado */}
-          <TextField
-            fullWidth
-            sx={{ width: '85%' }}
-            label="Cédula"
-            type="text"
-            inputProps={{
-              maxLength: 8,
-              inputMode: 'numeric', // Muestra teclado numérico en móviles
-              pattern: '[0-9]*' // Solo permite números
-            }}
-            variant="outlined"
-            name="document"
-            required
-          />
-        </Box>
-
-        <TextField fullWidth label="Contraseña" type="password" name="password" variant="outlined" required />
+        <TextField 
+          fullWidth 
+          label="Contraseña" 
+          type="password" 
+          name="password" 
+          required 
+        />
         
-        <SaveButton variant="contained" color="primary" type="submit" label={isAdmin ? 'Registrar' : 'Registrarse'} />
+        <SaveButton 
+          variant="contained" 
+          color="primary" 
+          type="submit" 
+          label={isAdmin ? 'Registrar' : 'Registrarse'} 
+        />
         
         {!isAdmin && <Link to="/login" className="font-light">
           ¿Ya tienes una cuenta? Inicia sesión
@@ -217,7 +261,6 @@ function Register({ formRef, registerUser, isAdmin }) {
     </article>
   );
 }
-
 Register.propTypes = {
   formRef: PropTypes.object,
   countries: PropTypes.array,
