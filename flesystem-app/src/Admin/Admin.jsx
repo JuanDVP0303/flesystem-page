@@ -262,7 +262,7 @@ const Admin = () => {
             {console.log(selectedProduct)}
           <Typography variant="h6" >Precio unitario para {selectedProduct?.product_name}</Typography>
           <Typography variant="body2" sx={{color:"gray"}}>Actual precio de venta: {selectedProduct?.sell_price} </Typography>
-          <Typography variant="body2" sx={{color:"gray"}}>Último precio de compra: {selectedProduct?.last_completed_order_price_unit} </Typography>
+          <Typography variant="body2" sx={{color:"gray"}}>Último precio de compra: {(selectedProduct?.last_completed_order_price_unit) || 0} </Typography>
           <TextField
             label="Precio unitario" 
             type="number" 
