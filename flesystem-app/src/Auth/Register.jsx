@@ -130,7 +130,7 @@ function RegisterBrain({isAdmin}) {
 
 function Register({ formRef, registerUser, isAdmin }) {
   const [personType, setPersonType] = useState('natural');
-
+  const [userRegistering, setUserRegistering] = useState("client")
   return (
     <article>
       <form
@@ -145,7 +145,9 @@ function Register({ formRef, registerUser, isAdmin }) {
         {isAdmin && <>
           <FormControl component="fieldset">
             <FormLabel component="legend">Tipo de usuario</FormLabel>
-            <RadioGroup aria-label="kind_of_person" name="kind_of_person" defaultValue="client">
+            <RadioGroup aria-label="kind_of_person" name="kind_of_person" defaultValue="client" onChange={()=>{
+              setUserRegistering(prev => prev === "client" ? "operator" : "client")
+            }}>
               <Box sx={{display:"flex"}}>
                 <FormControlLabel value="client" control={<Radio />} label="Cliente" />
                 <FormControlLabel value="operator" control={<Radio />} label="Operador" />
@@ -155,7 +157,7 @@ function Register({ formRef, registerUser, isAdmin }) {
         </>}
         
         {/* Nuevo RadioGroup para tipo de persona */}
-    {!isAdmin &&<FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
+    {userRegistering == "client" && <FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
           <FormLabel component="legend">Tipo de Persona</FormLabel>
           <RadioGroup 
             row
