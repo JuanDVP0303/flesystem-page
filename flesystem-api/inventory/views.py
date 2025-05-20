@@ -340,7 +340,7 @@ class ProductsViewset(viewsets.ModelViewSet):
                     'max_stock': product.max_stock,
                     'product_id': product.id,
                     'provider_id': product.provider.id,
-                    'sell_price': product.sell_price
+                    'sell_price': product.sell_price,
                 })        
         
         return Response(min_stock_products, status=status.HTTP_200_OK)

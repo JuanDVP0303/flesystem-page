@@ -399,6 +399,10 @@ const PurchaseSection = () => {
             {typeof purchasesModalType === "object" && purchasesModalType?.status == "PENDING" && (
                   <>
                   <Button type="submit" variant="outlined" color="primary" onClick={() => {
+                    if(!formValues.real_quantity){
+                      toast.error("Por favor, ingrese la cantidad real");
+                      return
+                    }
                     updateOrderStatus(order.id, "COMPLETED", formValues.real_quantity)
                     setPurchasesModalType(null)
 

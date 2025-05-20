@@ -132,7 +132,20 @@ const PurchasesProvider = ({ children }) => {
       }
     
       const updateOrderStatus = async (orderId, status, real_quantity) => {
+        console.log("ASDASDA")
         try {
+            if (!status) {
+                toast.error("Por favor selecciona un estado");
+                return;
+            }
+            if (status === "completed" && !real_quantity) {
+                toast.error("Por favor ingresa la cantidad real");
+                return;
+            }
+            if (status === "completed" && real_quantity <= 0) {
+                toast.error("La cantidad real debe ser mayor a 0");
+                return;
+            }
           const res = await api.post(`/purchase/orders/order-status/`, {
             order_id: orderId,
             status,
