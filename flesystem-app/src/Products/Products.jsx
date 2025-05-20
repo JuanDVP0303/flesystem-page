@@ -132,10 +132,10 @@ const generateOrder = async () => {
           <ListItemText
           className="text-center md:text-start"
             primary={product.name}
-            secondary={`Cantidad: ${product.quantity} - Precio unitario: $${product.sell_price.toFixed(2)}`}
+            secondary={`Cantidad: ${product.quantity} - Precio unitario: Bs.${product.sell_price.toFixed(2)}`}
           />
           <Typography variant="body2">
-            Subtotal: ${(product.quantity * product.sell_price).toFixed(2)}
+            Subtotal: Bs.{(product.quantity * product.sell_price).toFixed(2)}
           </Typography>
         </ListItem>
       ))}
