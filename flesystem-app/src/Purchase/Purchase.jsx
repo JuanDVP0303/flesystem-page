@@ -97,11 +97,12 @@ const Purchase = () => {
       <MiniCard>
         <Box className="flex flex-col md:flex-row justify-center gap-5">
         <TableGenerator
-              labels={["Producto", "Cantidad", "Proveedor", "Costo Total", "Fecha", "Acción", "Status"]}
+              labels={["Producto", "Cantidad Prevista", "Cantidad Real", "Proveedor", "Costo Total Esperado", "Costo Total Final", "Fecha", "Acción", "Status"]}
               data={orders.map(order => {
                 return {
                   ...order,
                   total_cost: `Bs.${order.total_cost.toFixed(2)}`,
+                  real_total_cost: `Bs.${(order.real_quantity * order.price_unit).toFixed(2)}`,
                   status: (
                     <Box className={`${
                       order.status === "COMPLETED" ? "bg-green-500" :
@@ -119,7 +120,7 @@ const Purchase = () => {
                     </IconButton>
                   )
                 }}) || []}
-              rowFields={["product_name", "quantity", "provider_name", "total_cost", "purchase_date", "action", "status"]}
+              rowFields={["product_name", "quantity", "real_quantity", "provider_name", "total_cost", "real_total_cost","purchase_date", "action", "status"]}
             />
         </Box>
       </MiniCard>

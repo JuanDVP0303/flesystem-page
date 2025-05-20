@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
 from .models import Inventory, Product, Movement, ProductBatch
+from buying.models import BuyingRecords, BuyingRecordsProducts
 from .serializer import ProductBatchSerializer, ProductSerializer, MovementSerializer
 from rest_framework.decorators import action
 # from operators.models import Operator

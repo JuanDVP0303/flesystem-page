@@ -335,7 +335,7 @@ const Admin = () => {
               Descargar los productos con stock bajo
             </Button>
             <List>
-              {minStockProducts.map((product) => (
+              {(minStockProducts ?? [])?.map((product) => (
                 <ListItem key={product.id} sx={{border: "1px solid #ccc", borderRadius: "10px", margin: "1rem 0", boxShadow: "1px 1px 5px #ccc", backgroundColor:"white"}}>
                   <WarningIcon sx={{m:2}} color="warning" />
                   <ListItemText 

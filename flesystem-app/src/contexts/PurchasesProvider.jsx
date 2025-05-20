@@ -106,7 +106,17 @@ const PurchasesProvider = ({ children }) => {
     }
 
     const createPurchase = async (formValues) => {
+        const priceUnit = formValues.price_unit;
+        if(!priceUnit){
+            toast.error("Por favor ingrese una cantidad")
+            return
+        }
+        if(Number(priceUnit) <= 0){
+            toast.error("Por favor ingrese un valor mayor a 0")
+            return
+        }
         console.log("FORM VALUES", {
+
             ...formValues})
         let res;
         try{
