@@ -99,8 +99,8 @@ const BuyingRecordDetails = ({ record, onBack }) => {
     record.products.forEach(product => {
         summary += `- ${product.product.name}\n`;
         summary += `  Cantidad: ${product.quantity}\n`;
-        summary += `  Precio: $${product.sell_price.toFixed(2)}\n`;
-        summary += `  Subtotal: $${(product.quantity * product.sell_price).toFixed(2)}\n\n`;
+        summary += `  Precio: Bs.${product.sell_price.toFixed(2)}\n`;
+        summary += `  Subtotal: Bs.${(product.quantity * product.sell_price).toFixed(2)}\n\n`;
     });
 
     summary += `*Costo total: $${record.total_cost.toFixed(2)}*`;
@@ -135,8 +135,8 @@ const handleWhatsAppClick = () => {
               <TableRow key={product.id}>
                 <TableCell>{product.product.name}</TableCell>
                 <TableCell align="right">{product.quantity}</TableCell>
-                <TableCell align="right">${product.sell_price.toFixed(2)}</TableCell>
-                <TableCell align="right">${(product.quantity * product.sell_price).toFixed(2)}</TableCell>
+                <TableCell align="right">Bs.{product.sell_price.toFixed(2)}</TableCell>
+                <TableCell align="right">Bs.{(product.quantity * product.sell_price).toFixed(2)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
