@@ -121,7 +121,7 @@ const Admin = () => {
     getMinStockProducts()
     getBuyingRecords()
     getAuditLog()
-  }, [])
+  }, [authenticatedUser])
 
   useEffect(() => {
     if(authenticatedUser.is_superuser){

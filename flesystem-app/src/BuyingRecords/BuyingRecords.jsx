@@ -33,7 +33,7 @@ const OperatorDashboard = () => {
       return
     }
     getBuyingRecords();
-  }, []);
+  }, [authenticatedUser]);
 
   useEffect(() => {
     setBuyingRecordsToShow(buyingRecords);

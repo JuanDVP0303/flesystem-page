@@ -40,7 +40,7 @@ const Purchase = () => {
     }
     getProviders();
     getOrders();
-  }, []);
+  }, [authenticatedUser]);
 
   return (
     <Box

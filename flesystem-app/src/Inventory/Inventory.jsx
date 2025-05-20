@@ -83,7 +83,7 @@ const Inventory = () => {
       return
     }
     getProducts();
-  }, []); // Asegúrate de incluir todas las dependencias necesarias
+  }, [authenticatedUser]); // Asegúrate de incluir todas las dependencias necesarias
   const handleExportAvailablesProducts = async () => {
     try {
         const response = await api.get(`/inventory/products/export-available-products/`, { responseType: "blob" });
