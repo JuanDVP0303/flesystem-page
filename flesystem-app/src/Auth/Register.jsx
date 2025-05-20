@@ -155,7 +155,7 @@ function Register({ formRef, registerUser, isAdmin }) {
         </>}
         
         {/* Nuevo RadioGroup para tipo de persona */}
-        <FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
+    {!isAdmin &&<FormControl component="fieldset" fullWidth sx={{ mt: 2 }}>
           <FormLabel component="legend">Tipo de Persona</FormLabel>
           <RadioGroup 
             row
@@ -175,7 +175,7 @@ function Register({ formRef, registerUser, isAdmin }) {
               label="Persona Jurídica" 
             />
           </RadioGroup>
-        </FormControl>
+        </FormControl>}
 
         {/* Campo oculto para type_of_document */}
         <input 
