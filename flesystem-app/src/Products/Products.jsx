@@ -150,7 +150,7 @@ const generateOrder = async () => {
         w-12 h-12 fixed rounded-full bg-[#1e3c72] right-1 ${showToHeader} transition ease-in-out duration-300 md:right-[80px] md:w-16 md:h-16 active:scale-125`}
         ></a>
         <ul className="flex flex-wrap justify-center">
-          {products.length > 0 ? (
+          {products.filter(product => product.quantity && product.quantity > product.min_stock).length > 0 ? (
             products.filter(product => product.quantity && product.quantity > product.min_stock).map((product) => {
               return (
                 <li
@@ -196,7 +196,7 @@ const generateOrder = async () => {
               );
             })
           ) : (
-            <h1>Sin productos...</h1>
+            <h1 className="font-bold text-xl text-center">Sin productos...</h1>
           )}
         </ul>
        <IconButton
