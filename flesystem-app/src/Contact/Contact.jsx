@@ -32,7 +32,7 @@ const MapView = () => {
         <UbicationCard/>
       </div>
       <article className="bg-slate-600 md:bg-inherit flex justify-center pt-10 pb-10">
-      <Form />
+      {/* <Form /> */}
       </article>
     </section>
   );
@@ -40,7 +40,7 @@ const MapView = () => {
 
 const UbicationCard = () => {
   return (
-    <article className="w-[90%] text-center h-auto bg-blue-500 text-white rounded-xl shadow-2xl m-m-0-auto  md:w-96  p-5">
+    <article className="w-[90%] text-center h-auto bg-blue-500 text-white rounded-xl shadow-2xl m-m-0-auto  md:w-[80%] mb-8 p-5">
       <div className="flex gap-5 justify-center items-center mb-8">
         <h1 className="font-bold text-2xl">FLESYSTEM</h1>
         <h2 className="font-bold">Flejes y sistemas C.A</h2>
