@@ -134,7 +134,7 @@ const OperatorDashboard = () => {
           <Typography>Usuario: {selectedOrder?.user?.email}</Typography>
           <Typography>Fecha: {selectedOrder?.purchase_date}</Typography>
           <Typography>Estado: {RECORDSTATUSES[selectedOrder?.status]}</Typography>
-          <Typography>Total: ${selectedOrder?.total_cost.toFixed(2)}</Typography>
+          <Typography>Total: BS.{selectedOrder?.total_cost.toFixed(2)}</Typography>
           <TableContainer>
             <Table>
               <TableHead>
@@ -150,8 +150,8 @@ const OperatorDashboard = () => {
                   <TableRow key={product.id}>
                     <TableCell>{product.product.name}</TableCell>
                     <TableCell>{product.quantity}</TableCell>
-                    <TableCell>${product.sell_price.toFixed(2)}</TableCell>
-                    <TableCell>${(product.quantity * product.sell_price).toFixed(2)}</TableCell>
+                    <TableCell>Bs.{product.sell_price.toFixed(2)}</TableCell>
+                    <TableCell>Bs.{(product.quantity * product.sell_price).toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

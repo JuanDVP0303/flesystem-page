@@ -82,6 +82,11 @@ const ProductView = () => {
       toast.error("El stock mínimo no puede ser igual al máximo")
       return
     }
+    //Validar que el max stock no sea muy alto
+    if(productEdited?.max_stock > 10000){
+      toast.error("El stock máximo no puede ser mayor a 10.000")
+      return
+    }
     const res = await editProductFunction(productEdited, productId)
     setProductEdited(res.data);
     setEditProduct(false);

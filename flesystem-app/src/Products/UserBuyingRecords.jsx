@@ -119,7 +119,7 @@ const handleWhatsAppClick = () => {
         <Typography variant="h6">Detalles del Pedido #{record.id}</Typography>
         <Typography>Fecha de compra: {record.purchase_date}</Typography>
         <Typography>Estado: {RECORDSTATUSES[record.status]}</Typography>
-        <Typography>Costo total: ${record.total_cost.toFixed(2)}</Typography>
+        <Typography>Costo total: BS.{record.total_cost.toFixed(2)}</Typography>
         
         <Table>
           <TableHead>

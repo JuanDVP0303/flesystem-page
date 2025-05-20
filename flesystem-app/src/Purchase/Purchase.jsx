@@ -351,6 +351,7 @@ const PurchaseSection = () => {
                 required={true}
                 label="Costo unitario"
                 numeric={true}
+                endAdornment={"Bs."}
                 disabled={typeof purchasesModalType === "object"}
                 placeholder="Ex:. 50.00"
               />
