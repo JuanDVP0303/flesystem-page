@@ -343,6 +343,10 @@ const IncomeInventory = () => {
             toast.error("El stock mínimo no puede ser mayor al stock máximo")
             return
           }
+          if(!formValues.provider){
+            toast.error("Debes seleccionar un proveedor")
+            return
+          }
           addProduct(formRef, formValues);
         }}
         ref={formRef}
