@@ -37,6 +37,18 @@ function RegisterBrain({isAdmin}) {
       toast.error('La fecha de nacimiento es requerida');
       return;
     }
+
+    const phone = formData.get('phone');
+    //Phone example: 0424 3132091
+    const phoneFirstNumbers = ["0424", "0414", "0412", "0416", "0426"];
+    if (!/^\d{4} \d{7}$/.test(phone)) {
+      toast.error('El teléfono debe tener el formato 0424 1234567');
+      return;
+    }
+    if (!phoneFirstNumbers.some(num => phone.startsWith(num))) {
+      toast.error('El teléfono debe comenzar con 0424, 0414, 0412, 0416 o 0426');
+      return;
+    }
   
     // Cálculo de edad
     const today = new Date();
