@@ -136,7 +136,7 @@ const generateOrder = async () => {
     </List>
     <Divider />
     <Typography variant="h6" style={{ marginTop: '1rem' }}>
-      Precio Final: ${selectedProducts.reduce((total, product) => total + (product.quantity * product.sell_price), 0).toFixed(2)}
+      Precio Final: Bs.{selectedProducts.reduce((total, product) => total + (product.quantity * product.sell_price), 0).toFixed(2)}
     </Typography>
   </DialogContent>
   <DialogActions>
