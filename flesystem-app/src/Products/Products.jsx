@@ -196,7 +196,7 @@ const generateOrder = async () => {
               );
             })
           ) : (
-            <h1 className="font-bold text-xl text-center">Sin productos...</h1>
+            <h1 className="font-bold text-xl text-center">En este momento no tenemos stock de nuestros productos, intente más tarde...</h1>
           )}
         </ul>
        <IconButton
