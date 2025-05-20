@@ -44,6 +44,12 @@ export default function Products() {
   }, [])
 
   useEffect(() => {
+    if(authenticatedUser && authenticatedUser.kind_of_person != "client" && !authenticatedUser.is_superuser){
+      window.location.href = "/"
+    }
+  }, [authenticatedUser])
+
+  useEffect(() => {
     const handleScroll = () => {
       setShowToHeader(
         window.scrollY >= 300
