@@ -327,6 +327,22 @@ const IncomeInventory = () => {
             toast.error("Debes subir una imagen del producto")
             return
           }
+          if(formValues.sell_price < 0){
+            toast.error("El precio de venta no puede ser menor a 0")
+            return
+          }
+          if(formValues.min_stock < 0){
+            toast.error("El stock mínimo no puede ser menor a 0")
+            return
+          }
+          if(formValues.max_stock < 0){
+            toast.error("El stock máximo no puede ser menor a 0")
+            return
+          }
+          if(formValues.min_stock > formValues.max_stock){
+            toast.error("El stock mínimo no puede ser mayor al stock máximo")
+            return
+          }
           addProduct(formRef, formValues);
         }}
         ref={formRef}
@@ -389,7 +405,6 @@ const IncomeInventory = () => {
                 label="Categoria"
                 disabled={formValues.disableFields}
                 name="category"
-                optional={true}
                 placeholder="Ex:. Vestimenta..."
               />
               <FieldGroup
@@ -399,7 +414,6 @@ const IncomeInventory = () => {
                 required={true}
                 name="sell_price"
                 numeric={true}
-                optional={true}
                 placeholder="Ex:. 100.00"
               />
                     <FieldGroup
@@ -417,7 +431,6 @@ const IncomeInventory = () => {
                 label="SKU"
                 name="sku"
                 placeholder={"Stock Keeping Unit"}
-                optional={true}
               />
             </GridField>
           </Grid>
@@ -663,7 +676,7 @@ export const FieldGroup = ({
   searchFunction, multiline, endAdornment, choices, formValues, options
 }) => {
   const handleKeyDown = (e) => {
-    if (e.key === '-' || e.key === 'e' || e.key === '+' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key=="."  || e.key=="," ) {
+    if (e.key === '-' || e.key === 'e' || e.key === '+' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
     }
   };
@@ -673,7 +686,7 @@ export const FieldGroup = ({
   
     <div className="flex flex-col flex-1">
       <FormLabel>
-        {label} {optional && <span className="text-gray-300">(Opcional)</span>}
+        {label}
       </FormLabel>
       {double ? (
         <div className="flex w-full">
@@ -728,7 +741,7 @@ export const FieldGroup = ({
           required={required}
           variant="outlined"
           type={type ? type : numeric ? "number" : "text"}
-          step={numeric ? "0.01" : ""}
+          step={numeric ? 0.01 : ""}
           size="medium"
           select={!!choices}
           disabled={disabled}
