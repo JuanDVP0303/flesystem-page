@@ -114,6 +114,10 @@ const Admin = () => {
   }
 
   useEffect(() => {
+    if(authenticatedUser?.kind_of_person == "client"){
+      window.location.href = "/"
+      return
+    }
     getMinStockProducts()
     getBuyingRecords()
     getAuditLog()

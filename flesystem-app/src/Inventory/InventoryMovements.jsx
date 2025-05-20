@@ -8,10 +8,12 @@ import moment from 'moment'
 import { api } from '../utils/api';
 import SalesTrendsReport from './components/SalesTrendReport';
 import { ModalComponent } from '../components/utils/ModalComponent';
+import { useGlobalContext } from '../hooks/useGlobalContext';
 const InventoryMovements = ({type}) => {
   const [movements, setMovements] = useState([])
   const [showSalesTrend, setShowSalesTrend] = useState(false)
   const {goTo} = useGoTo()
+  const {authenticatedUser } = useGlobalContext()
 
   const getMovements = async () => {
     const res = await api.get(`/inventory/movements/?&type=${type}`)
@@ -19,6 +21,10 @@ const InventoryMovements = ({type}) => {
   }
 
   useEffect(() => {
+    if(authenticatedUser?.kind_of_person == "client"){
+      window.location.href = "/"
+      return
+    }
     getMovements()
   }, [type])
 

@@ -99,6 +99,10 @@ const ProductView = () => {
   }
 
   useEffect(() => {
+    if(authenticatedUser?.kind_of_person == "client"){
+      window.location.href = "/"
+      return
+    }
     // const currency = currencySelected || office?.main_currency || office?.currency
     // !office && getOffice(officeId)
     getProduct();

@@ -74,9 +74,14 @@ const Inventory = () => {
   } = useInventoryContext();
   // const { id, branch_office_id } = useParams();
   const {goTo} = useGoTo();
+  const {authenticatedUser} = useGlobalContext()
   const [openTransferItems, setOpenTransferItems] = useState(false);
   // const {office, getOffice, currencySelected, setCurrencySelected} = useMovementContext()
   useEffect(() => {
+    if(authenticatedUser?.kind_of_person == "client"){
+      window.location.href = "/"
+      return
+    }
     getProducts();
   }, []); // Asegúrate de incluir todas las dependencias necesarias
   const handleExportAvailablesProducts = async () => {

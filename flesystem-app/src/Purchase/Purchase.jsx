@@ -34,6 +34,10 @@ const Purchase = () => {
   const { setPurchasesModalType, getProviders, getOrders, orders } = usePurchaseContext();
 
   useEffect(() => {
+    if(authenticatedUser?.kind_of_person == "client"){
+      window.location.href = "/"
+      return
+    }
     getProviders();
     getOrders();
   }, []);

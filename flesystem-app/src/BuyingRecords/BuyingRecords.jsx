@@ -15,9 +15,12 @@ import { useBuyingRecordContext } from '../hooks/useBuyingRecords';
 import { RECORDSTATUSES } from '../Products/UserBuyingRecords';
 import OrderStatusDashboard from './BuyingRecordsStatuses';
 import DragAndDropBox from '../components/utils/DragAndDropBox';
+import { useGlobalContext } from '../hooks/useGlobalContext';
 
 const OperatorDashboard = () => {
   const { buyingRecords, getBuyingRecords, updateOrderStatus } = useBuyingRecordContext();
+    const { authenticatedUser } = useGlobalContext();
+  
   const [buyingRecordsToShow, setBuyingRecordsToShow] = useState([]);
   const [stats, setStats] = useState({ pending: 0, completed: 0, cancelled: 0 });
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -25,6 +28,10 @@ const OperatorDashboard = () => {
   const [paymentRef, setPaymentRef] = useState('');
   const [searchedId, setSearchedId] = useState('');
   useEffect(() => {
+    if(authenticatedUser?.kind_of_person == "client"){
+      window.location.href = "/"
+      return
+    }
     getBuyingRecords();
   }, []);
 
