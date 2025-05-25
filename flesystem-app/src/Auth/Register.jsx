@@ -18,6 +18,8 @@ const fieldsObj = {
   type_of_document: 'Tipo de documento',
   document: 'Cédula',
   password: 'Contraseña',
+  confirmPassword: 'Confirmar contraseña',
+
   account:"una cuenta"
 };
 
@@ -28,10 +30,19 @@ function RegisterBrain({isAdmin}) {
 
   const registerUser = async () => {
     const formData = new FormData(formRef.current);
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
+    if (password !== confirmPassword) {
+      toast.error('Las contraseñas no coinciden');
+      return;
+    }
+    formData.delete('confirmPassword'); // Eliminar campo de confirmación del formData
+
     if (isAdmin && !formData.get('kind_of_person')) {
       toast.error('Selecciona el tipo de usuario');
       return
     }
+    
     const birthdate = formData.get('birthdate');
     if (!birthdate) {
       toast.error('La fecha de nacimiento es requerida');
@@ -261,6 +272,13 @@ function Register({ formRef, registerUser, isAdmin }) {
           required 
         />
         
+        <TextField 
+          fullWidth 
+          label="Confirma Contraseña" 
+          type="password" 
+          name="confirmPassword" 
+          required 
+        />
         <SaveButton 
           variant="contained" 
           color="primary" 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import propTypes from "prop-types";
 import { useInventoryContext } from "../hooks/useInventoryContext";
-import { Badge, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Drawer, Icon, IconButton, Input, List, ListItem, ListItemText, Typography } from "@mui/material";
+import { Badge, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Drawer, Icon, IconButton, Input, List, ListItem, ListItemText, Tooltip, Typography } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { styled } from "@mui/material/styles";
 import { Unstable_NumberInput as NumberInput } from '@mui/base';
@@ -161,19 +161,8 @@ const generateOrder = async () => {
               return (
                 <li
                   key={product?.id}
-                  className="m-10 flex border transition-all hover:translate-y-[-20px] border-green-300 rounded-lg p-4 shadow-md justify-center flex-col"
-                >
-                  {/* ANtes el div este padre UU, era un <Link> */}
-                  <div className="relative" to={`/products/${product?.id}`}>
-                    <IconButton
-                      sx={{
-                        position: "absolute",
-                        right: "0px",
-                        top: "0px",
-                        color: "green",
-                        p:0
-                      }}
-                      onClick={() => {
+                  className="m-10 flex border transition-all hover:translate-y-[-20px] border-green-300 rounded-lg p-4 shadow-md justify-center flex-col cursor-pointer"
+                    onClick={() => {
                         setSelectedProducts((prev) => {
                           const productIndex = prev.findIndex(
                             (p) => p.id === product.id
@@ -188,9 +177,23 @@ const generateOrder = async () => {
                           }
                         });
                       }}
+                >
+                  {/* ANtes el div este padre UU, era un <Link> */}
+
+                  <div className="relative" to={`/products/${product?.id}`}>
+                <Tooltip title="Agregar al carrito" placement="right">
+                    <IconButton
+                      sx={{
+                        position: "absolute",
+                        right: "0px",
+                        top: "0px",
+                        color: "green",
+                        p:0
+                      }}
                     >
                       <ShoppingCartIcon />
                     </IconButton>
+                    </Tooltip>
                     <h2 className="text-center mt-4">{product?.name}</h2>
                     <img
                       src={product?.product_image}
@@ -205,31 +208,35 @@ const generateOrder = async () => {
             <h1 className="font-bold text-xl text-center">En este momento no tenemos stock de nuestros productos, intente más tarde...</h1>
           )}
         </ul>
-       <IconButton
-          sx={{ position: "fixed", right: 0, top: 50 }}
-          className={`
-                          w-12 h-12 rounded-full bg-[#1e3c72] transition ease-in-out duration-300 md:w-16 md:h-16 active:scale-125`}
-          onClick={() => {
-            setShowProductCart((prev) => !prev);
-          }}
-        >
-          <StyledBadge
-            badgeContent={selectedProducts?.length}
-            color="secondary"
-          >
-            <ShoppingCartIcon />
-          </StyledBadge>
-        </IconButton> 
+   <Tooltip title="Carrito de compras" placement="left">
+  <IconButton
+    sx={{ position: "fixed", right: 0, top: 50 }}
+    className={`
+      w-12 h-12 rounded-full bg-[#1e3c72] transition ease-in-out duration-300 md:w-16 md:h-16 active:scale-125`}
+    onClick={() => {
+      setShowProductCart((prev) => !prev);
+    }}
+  >
+    <StyledBadge
+      badgeContent={selectedProducts?.length}
+      color="secondary"
+    >
+      <ShoppingCartIcon />
+    </StyledBadge>
+  </IconButton>
+</Tooltip>
+   <Tooltip title="Mis pedidos" placement="right">
         <IconButton
           sx={{ position: "fixed", left: 0, bottom: 50 }}
           className={`
-                          w-12 h-12 rounded-full bg-[#1e3c72] transition ease-in-out duration-300 md:w-12 md:h-12 active:scale-125`}
+            w-12 h-12 rounded-full bg-[#1e3c72] transition ease-in-out duration-300 md:w-12 md:h-12 active:scale-125`}
           onClick={() => {
             setOpenUserBuyingRecords((prev) => !prev);
           }}
         >
             <ShoppingBagIcon />
         </IconButton> 
+        </Tooltip>
         <DrawerCart
           showProductCart={showProductCart}
           setShowProductCart={setShowProductCart}
