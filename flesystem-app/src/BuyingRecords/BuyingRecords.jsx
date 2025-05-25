@@ -20,13 +20,39 @@ import { useGlobalContext } from '../hooks/useGlobalContext';
 const OperatorDashboard = () => {
   const { buyingRecords, getBuyingRecords, updateOrderStatus } = useBuyingRecordContext();
     const { authenticatedUser } = useGlobalContext();
-  
+    const [statusFilter, setStatusFilter] = useState('PENDING'); // Estado para el filtro
+
   const [buyingRecordsToShow, setBuyingRecordsToShow] = useState([]);
   const [stats, setStats] = useState({ pending: 0, completed: 0, cancelled: 0 });
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentRef, setPaymentRef] = useState('');
   const [searchedId, setSearchedId] = useState('');
+  const FilterButton = ({ status, label }) => (
+    <Button
+      variant={statusFilter === status ? 'contained' : 'outlined'}
+      onClick={() => setStatusFilter(status)}
+      sx={{ mx: 1 }}
+    >
+      {label}
+    </Button>
+  );
+  useEffect(() => {
+    let filteredRecords = [...buyingRecords];
+    
+    // Aplicar filtro de estado
+    filteredRecords = filteredRecords.filter(record => record.status === statusFilter);
+    
+    // Aplicar filtro de búsqueda
+    if (searchedId) {
+      filteredRecords = filteredRecords.filter(record => 
+        record.id.toString().includes(searchedId)
+      );
+    }
+    
+    setBuyingRecordsToShow(filteredRecords);
+  }, [statusFilter, searchedId, buyingRecords]); // Dependencias actualizadas
+
   useEffect(() => {
     if(authenticatedUser?.kind_of_person == "client"){
       window.location.href = "/"
@@ -35,9 +61,9 @@ const OperatorDashboard = () => {
     getBuyingRecords();
   }, [authenticatedUser]);
 
-  useEffect(() => {
-    setBuyingRecordsToShow(buyingRecords);
-  }, [buyingRecords]);
+  // useEffect(() => {
+  //   setBuyingRecordsToShow(buyingRecords);
+  // }, [buyingRecords]);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -81,8 +107,6 @@ const OperatorDashboard = () => {
     if (searchedId) {
       const filteredRecords = buyingRecords.filter((record) => record.id.toString().includes(searchedId));
       setBuyingRecordsToShow(filteredRecords);
-    } else {
-      setBuyingRecordsToShow(buyingRecords);
     }
   }, [searchedId, buyingRecords]);
 
@@ -106,11 +130,18 @@ const OperatorDashboard = () => {
           />
         </FormControl>
         </Card>
+                  <Grid item xs={12} sm={6} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <FilterButton status="PENDING" label="Pendientes" />
+            <FilterButton status="COMPLETED" label="Completados" />
+            <FilterButton status="CANCELLED" label="Cancelados" />
+          </Grid>
+
       {/* Lista de Pedidos */}
       <TableContainer component={Paper} sx={{my:2}}>
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell></TableCell>
               <TableCell>ID Pedido</TableCell>
               <TableCell>Fecha</TableCell>
               <TableCell>Estado</TableCell>
@@ -119,8 +150,9 @@ const OperatorDashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {buyingRecordsToShow.map((order) => (
+            {buyingRecordsToShow.map((order,index) => (
               <TableRow key={order.id}>
+                <TableCell>{index+1}</TableCell>
                 <TableCell>{order.id}</TableCell>
                 <TableCell>{order.purchase_date}</TableCell>
                 <TableCell>{RECORDSTATUSES[order.status]}</TableCell>

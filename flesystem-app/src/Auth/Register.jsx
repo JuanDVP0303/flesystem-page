@@ -28,10 +28,34 @@ function RegisterBrain({isAdmin}) {
   const { setAuthenticatedUser } = useGlobalContext();
   const formRef = useRef(null);
 
+  
+  const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (password.length < minLength) {
+      toast.error('La contraseña debe tener al menos 8 caracteres');
+      return false;
+    }
+    if (!hasUpperCase) {
+      toast.error('La contraseña debe contener al menos una letra mayúscula');
+      return false;
+    }
+    if (!hasSymbol) {
+      toast.error('La contraseña debe contener al menos un símbolo (!@#$%^&*(),.?":{}|<>)');
+      return false;
+    }
+    return true;
+  };
+
+
   const registerUser = async () => {
     const formData = new FormData(formRef.current);
     const password = formData.get('password');
     const confirmPassword = formData.get('confirmPassword');
+    if (!validatePassword(password)) return;
+
     if (password !== confirmPassword) {
       toast.error('Las contraseñas no coinciden');
       return;
