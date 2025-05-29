@@ -1,7 +1,12 @@
-from .models import BuyingRecords, BuyingRecordsProducts
+from .models import BuyingRecords, BuyingRecordsProducts, PaymentDetail
 from rest_framework import serializers
 from django.db.models import Sum, F
 from inventory.models import ProductBatch
+class PaymentDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentDetail
+        fields = '__all__'
+
 class BuyingRecordsProductsSerializer(serializers.ModelSerializer): 
     batches_quantity = serializers.SerializerMethodField()
 
@@ -36,6 +41,8 @@ class BuyingRecordsProductsSerializer(serializers.ModelSerializer):
         return representation
 
 class BuyingRecordsSerializer(serializers.ModelSerializer):
+    payment_details = PaymentDetailSerializer(many=True, read_only=True)
+
     class Meta:
         model = BuyingRecords
         fields = '__all__'

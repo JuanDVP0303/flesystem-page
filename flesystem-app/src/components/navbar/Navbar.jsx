@@ -387,7 +387,7 @@ function ResponsiveDrawer({ children, mobileOpen, setMobileOpen }) {
                 <Divider
                   sx={{ my: (theme) => `${theme.spacing(1)} !important` }}
                 />
-                <MenuItemStyled sx={{ p: 0 }} onClick={logout}>
+                <MenuItemStyled sx={{ p:0 }} onClick={logout}>
                   <Box sx={styles}>
                     <LogoutIcon />
                     Cerrar sesión

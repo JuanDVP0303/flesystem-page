@@ -1,7 +1,7 @@
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { api } from '../../src/utils/api';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 import { useGoTo } from '../../src/hooks/useGoTo';
@@ -50,7 +50,7 @@ function RegisterBrain({isAdmin}) {
   };
 
 
-  const registerUser = async () => {
+  const registerUser = async (typeOfDocument) => {
     const formData = new FormData(formRef.current);
     const password = formData.get('password');
     const confirmPassword = formData.get('confirmPassword');
@@ -104,13 +104,19 @@ function RegisterBrain({isAdmin}) {
       return;
     }
 
+    //Validar que el año sea mayor a 1940
+    if (birthDate.getFullYear() < 1940) {
+      toast.error('La fecha de nacimiento no puede ser menor a 1940');
+      return;
+    }
+
     if (age < 18) {
       toast.error('Debes ser mayor de 18 años para registrarte');
       return;
     }
     formData.set(
       'document',
-      `${formData.get('type_of_document')}-${formData.get('document')}`
+      `${typeOfDocument}-${formData.get('document')}`
     );
 
     if(formData.get("document").length < 7){
@@ -165,7 +171,13 @@ function RegisterBrain({isAdmin}) {
 
 function Register({ formRef, registerUser, isAdmin }) {
   const [personType, setPersonType] = useState('natural');
+  const [typeOfDocument, setTypeOfDocument] = useState('V');
   const [userRegistering, setUserRegistering] = useState("client")
+  useEffect(() => {
+    if(personType!= "natural"){
+      setTypeOfDocument('J');
+    }
+  }, [personType])
   return (
     <article>
       <form
@@ -173,7 +185,7 @@ function Register({ formRef, registerUser, isAdmin }) {
         ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
-          registerUser();
+          registerUser(typeOfDocument);
         }}
       >
         <h2 className="title">{!isAdmin ? "Regístrate" : "Registra usuarios"}</h2>
@@ -213,13 +225,7 @@ function Register({ formRef, registerUser, isAdmin }) {
             />
           </RadioGroup>
         </FormControl>}
-
-        {/* Campo oculto para type_of_document */}
-        <input 
-          type="hidden" 
-          name="type_of_document" 
-          value={personType === 'natural' ? 'V' : 'J'} 
-        />
+    
 
         {/* Campos condicionales según tipo de persona */}
         {personType === 'natural' ? (
@@ -246,20 +252,31 @@ function Register({ formRef, registerUser, isAdmin }) {
             />
           </Box>
         ) : (
-          <TextField
-            fullWidth
-            label="RIF"
-            name="document"
-            inputProps={{
-              maxLength: 10,
-              inputMode: 'numeric',
-              pattern: '[0-9]*'
-            }}
-            onInput={(e) => {
-              e.target.value = e.target.value.replace(/[^0-9]/g, '');
-            }}
-            required
-          />
+          <Box display="flex" alignItems="center" width={'100%'} gap={1}>
+            <FormControl sx={{ width: '15%' }} variant="outlined">
+              <Select value={typeOfDocument} onChange={(e) => {
+                console.log(e.target.value)
+                setTypeOfDocument(e.target.value);
+                }}>
+                <MenuItem value="J">J</MenuItem>
+                <MenuItem value="G">G</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              label="RIF"
+              name="document"
+              inputProps={{
+                maxLength: 10,
+                inputMode: 'numeric',
+                pattern: '[0-9]*'
+              }}
+              onInput={(e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+              }}
+              required
+            />
+          </Box>
         )}
 
         {/* Resto de campos... */}

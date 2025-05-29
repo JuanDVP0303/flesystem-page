@@ -28,11 +28,16 @@ import { useInventoryContext } from "../hooks/useInventoryContext";
 import { api } from "../utils/api";
 import { toast } from "react-toastify";
 import ProductTable from "../Inventory/components/ProductTable";
+import { FilterButton } from "../BuyingRecords/BuyingRecords";
 
 const Purchase = () => {
   const { authenticatedUser } = useGlobalContext();
   const { setPurchasesModalType, getProviders, getOrders, orders } = usePurchaseContext();
+  const [statusFilter, setStatusFilter] = useState('PENDING');
 
+  const filteredOrders = orders.filter(order => 
+    statusFilter ? order.status === statusFilter : true
+  );
   useEffect(() => {
     if(authenticatedUser?.kind_of_person == "client"){
       window.location.href = "/"
@@ -98,11 +103,22 @@ const Purchase = () => {
             /> */}
           </div>
         </MiniCard>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center',
+            mb: 2,
+            flexWrap: 'wrap'
+          }}>
+            <FilterButton status="PENDING" label="Pendientes" statusFilter={statusFilter} setStatusFilter={setStatusFilter}/>
+            <FilterButton status="COMPLETED" label="Completados" statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
+            <FilterButton status="CANCELLED" label="Cancelados" statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
+          </Box>
       <MiniCard>
+      
         <Box className="flex flex-col md:flex-row justify-center gap-5">
         <TableGenerator
               labels={["Producto", "Cantidad Prevista", "Cantidad Real", "Proveedor", "Costo Total Esperado", "Costo Total Final", "Fecha", "Acción", "Status"]}
-              data={orders.map(order => {
+              data={filteredOrders.map(order => {
                 return {
                   ...order,
                   total_cost: `Bs.${order.total_cost.toFixed(2)}`,

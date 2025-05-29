@@ -64,6 +64,7 @@ const DragAndDropBox = ({
   onDelete,
   onReplace,
   onClear,
+  title
 }) => {
   const [numPages, setNumPages] = useState(null)
   const [modal, setModal] = useState(null)
@@ -270,7 +271,7 @@ const DragAndDropBox = ({
           borderRadius: 2,
           overflow: 'hidden',
           position: 'relative',
-          transition: 'border-color 0.3s'
+          transition: 'border-color 0.3s',
         }}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -289,7 +290,7 @@ const DragAndDropBox = ({
         textAlign='center'
         sx={{ position: 'absolute', top: '50%', width: '100%', transform: 'translateY(-50%)' }}
       >
-        {!disabled ? "Subir foto" : "Sin foto" }
+        {!disabled ? title ? title : "Subir foto" : "Sin foto" }
       </Typography>  
         }
         <Input

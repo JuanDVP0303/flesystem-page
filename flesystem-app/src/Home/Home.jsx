@@ -4,8 +4,15 @@ import About from "./About/About";
 import Contact from "../Contact/Contact";
 import flesystemCompleteLogo from "/510.png";
 import enterpriseImage from "/656.jpg";
+import { useEffect } from "react";
 
 export default function Home() {
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+    });
+  }, [])
   return (
     <main className="">
       {/* Parte superior, hero */}

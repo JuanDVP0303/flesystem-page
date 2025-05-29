@@ -2,15 +2,15 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import BuyingRecords, BuyingRecordsProducts
-from .serializers import BuyingRecordsSerializer
+from .models import BuyingRecords, BuyingRecordsProducts, PaymentDetail
+from .serializers import BuyingRecordsSerializer, PaymentDetailSerializer
 from django.utils import timezone
 from django.db import transaction
 from .services import update_product_batches
 from users.services import log_user_action
 import pandas as pd
 from django.http import HttpResponse
-from django.db.models import F
+from django.db.models import F, Sum
 from purchase.models import Order
 from purchase.serializers import OrderSerializer
 
@@ -64,39 +64,98 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
         serializer = self.get_serializer(buying_records, many=True)
         return Response(serializer.data)
 
+
     @action(detail=True, methods=['patch'], url_path='update-status')
     def update_status(self, request, id=None):
         buying_record = self.get_object()
         new_status = request.data.get('status')
-        payment_method = request.data.get('payment_method')
-        payment_ref = request.data.get('payment_ref')
-        print("payment_ref", payment_ref)
-
+        # payment_details = request.data.get('payment_details', [])
+        #Seleccionar todos los campos del request.data que empiecen con 'payment_details' ya que el formato es payment_details[${index}][method], entoces agrupar por el index y crear una lista de diccionarios
+        payment_details = []
+        for key, value in request.data.items():
+            if key.startswith('payment_details'):
+                index = key.split('[')[1].split(']')[0]
+                if len(payment_details) <= int(index):
+                    payment_details.append({})
+                field_name = key.split(']')[1][1:]  # Obtener el nombre del campo después del índice
+                payment_details[int(index)][field_name] = value
+                
+        print("payment_details", payment_details)
+        if not new_status:
+            return Response({"error": "Nuevo Status es requerido"}, status=status.HTTP_400_BAD_REQUEST)
+        
         if new_status not in [status for status, _ in BuyingRecords.STATUS_CHOICES]:
             return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if new_status == 'COMPLETED' and buying_record.status != 'COMPLETED':
-            try:
-                with transaction.atomic():
+        try:
+            with transaction.atomic():
+                # Actualizar detalles de pago
+                for payment_data in payment_details:
+                    payment = PaymentDetail.objects.update_or_create(
+                        buying_record=buying_record,
+                        method=payment_data['method'],
+                        defaults={
+                            'amount': payment_data['amount'],
+                            'reference': payment_data.get('reference', ''),
+                        }
+                    )
+                    if 'proof' in payment_data:
+                        #Hacer el save file del proof
+                        payment[0].proof = payment_data['proof']
+                        payment[0].save()
+                
+                # Calcular total pagado
+                total_paid = buying_record.payment_details.aggregate(
+                    total=Sum('amount')
+                )['total'] or 0
+                buying_record.total_paid = total_paid
+                print("total_paid", total_paid, buying_record.total_cost)
+
+                if new_status == 'COMPLETED' and buying_record.status != 'COMPLETED':
+                    if total_paid < buying_record.total_cost:
+                        return Response({"error": "El pago no cubre el total del pedido"}, status=status.HTTP_400_BAD_REQUEST)
+                    
                     for product_record in BuyingRecordsProducts.objects.filter(buying_record=buying_record):
                         update_product_batches(product_record.product, product_record.quantity)
                     
                     buying_record.status = new_status
-                    buying_record.payment_method = payment_method
                     buying_record.payment_date = timezone.now()
-                    if payment_ref:
-                        buying_record.payment_proof = payment_ref
-                    buying_record.save()
-            except ValueError as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            buying_record.status = new_status
-            buying_record.save()
-        log_user_action(request.user, "pedido", buying_record.id, f"Se ha actualizado el estado del pedido {buying_record.id} a {buying_record.get_status_display()}")
+                else:
+                    buying_record.status = new_status
+                
+                buying_record.save()
+                
+            log_user_action(request.user, "pedido", buying_record.id, f"Se ha actualizado el estado del pedido {buying_record.id} a {buying_record.get_status_display()}")
+            return Response(BuyingRecordsSerializer(buying_record).data)
+        
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(buying_record)
-        return Response(serializer.data)
-    
+    @action(detail=True, methods=['post'], url_path='add-payment')
+    def add_payment(self, request, id=None):
+        buying_record = self.get_object()
+        payment_data = request.data
+        
+        try:
+            with transaction.atomic():
+                payment = PaymentDetail.objects.create(
+                    buying_record=buying_record,
+                    method=payment_data['method'],
+                    amount=payment_data['amount'],
+                    reference=payment_data.get('reference', ''),
+                    proof=payment_data.get('proof', None)
+                )
+                
+                # Actualizar total pagado
+                buying_record.total_paid = buying_record.payment_details.aggregate(
+                    total=Sum('amount')
+                )['total'] or 0
+                buying_record.save()
+                
+                return Response(PaymentDetailSerializer(payment).data)
+        
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'], url_path='export-buying')
     def export_orders(self, request):

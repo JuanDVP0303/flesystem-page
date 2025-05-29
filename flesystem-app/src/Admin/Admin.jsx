@@ -47,7 +47,9 @@ const Admin = () => {
     try{
       const response = await api.get('/users/users/');
       console.log("DASDADASD", response)
-      setUserList(response.data);
+      const list = response.data || [];
+      //Ordenar ascendente por id
+      setUserList(list);
     }catch(e){
       toast.error("Error al obtener los usuarios")
     }

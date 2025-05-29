@@ -219,11 +219,16 @@ const IncomeInventory = () => {
     getProviders()
   }, [])
   const handleChange = (e) => {
+    
     const { name, value } = e.target;
     console.log("NAME VLAUE", name,value)
+    let realValue = value
+    if(name == "sku"){
+      realValue = realValue.toUpperCase()
+    }
     setFormValues({
       ...formValues,
-      [name]: value,
+      [name]: realValue,
     });
   };
 
@@ -346,6 +351,17 @@ const IncomeInventory = () => {
           if(!formValues.provider){
             toast.error("Debes seleccionar un proveedor")
             return
+          }
+          const skuRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,12}$/;
+          const sku = formValues.sku
+          if (!sku) {
+            toast.error("Debes ingresar un SKU para el producto");
+            return;
+          }
+          console.log("SKU", sku, skuRegex.test(sku))
+          if (!skuRegex.test(sku)) {
+            toast.error("El SKU debe ser alfanumérico, sin espacios ni caracteres especiales, y tener entre 6 y 12 caracteres");
+            return;
           }
           addProduct(formRef, formValues);
         }}

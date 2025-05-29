@@ -76,7 +76,7 @@ export const NavBar = () => {
       {
         authenticatedUser ? 
         <li>
-          <button className='text-white' onClick={() => {logout()}}>Cerrar Sesión</button>
+          <button className='text-white mr-4' onClick={() => {logout()}}>Cerrar Sesión</button>
 
         </li>
         :
