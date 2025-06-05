@@ -210,7 +210,7 @@ const generateOrder = async () => {
         </ul>
    <Tooltip title="Carrito de compras" placement="left">
   <IconButton
-    sx={{ position: "fixed", right: 0, top: 50 }}
+    sx={{ position: "fixed", left: 0, top: 50 }}
     className={`
       w-12 h-12 rounded-full bg-[#1e3c72] transition ease-in-out duration-300 md:w-16 md:h-16 active:scale-125`}
     onClick={() => {
@@ -227,7 +227,7 @@ const generateOrder = async () => {
 </Tooltip>
    <Tooltip title="Mis pedidos" placement="right">
         <IconButton
-          sx={{ position: "fixed", left: 0, bottom: 50 }}
+          sx={{ position: "fixed", left: 60, top:57 }}
           className={`
             w-12 h-12 rounded-full bg-[#1e3c72] transition ease-in-out duration-300 md:w-12 md:h-12 active:scale-125`}
           onClick={() => {
