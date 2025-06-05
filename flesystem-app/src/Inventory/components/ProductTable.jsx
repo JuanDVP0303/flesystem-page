@@ -114,7 +114,8 @@ const ProductTable = ({products, isProvider}) => {
             }}
           >
             <Typography variant="h6">
-              Orden de compra para {selectedProduct?.product_name}
+              {console.log(selectedProduct)}
+              Orden de compra para {selectedProduct?.name}
             </Typography>
             <Typography variant="body2" sx={{ color: "gray" }}>
               Actual precio de venta: {selectedProduct?.sell_price}{" "}

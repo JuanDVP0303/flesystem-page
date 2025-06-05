@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Inventory, Product, ProductVariants, Movement, ProductBatch
-from purchase.models import Provider
+from purchase.models import Provider, Order
 # from operators.models import BranchOffice
 from .utils import calculate_price_unit, calculate_quantity
 class InventorySerializer(serializers.ModelSerializer):
@@ -61,7 +61,12 @@ class ProductSerializer(serializers.ModelSerializer):
         representation = calculate_price_unit(instance, representation)
         representation = calculate_quantity(instance, representation)
         representation["batches"] = ProductBatchSerializer(ProductBatch.objects.filter(product=instance), many=True).data
+        last_completed_order_price_unit = Order.objects.filter(
+                product=instance,
+                status="COMPLETED"
+            ).order_by('-created_at').values('price_unit').first()
         
+        representation["last_completed_order_price_unit"] = last_completed_order_price_unit['price_unit'] if last_completed_order_price_unit else None
         context = self.context
         if context.get("currency"):
             currency_str = context.get("currency").lower()
