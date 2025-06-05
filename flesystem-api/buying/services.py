@@ -51,7 +51,7 @@ def update_product_batches(product, quantity_needed):
                     print(f"Actualizada orden consignación #{order.id}: Vendido total: {order.sold_quantity}")
                     
                     # Verificar si se completó la consignación
-                    if order.sold_quantity >= order.quantity:
+                    if order.sold_quantity >= order.real_quantity:
                         order.consignment_status = 'COMPLETED'
                         order.save()
                         print(f"¡Consignación #{order.id} completada!")
