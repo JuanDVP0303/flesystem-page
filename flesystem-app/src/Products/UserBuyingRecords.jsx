@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, List, DialogActions, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, List, DialogActions, FormControl, InputLabel, Select, MenuItem, Box, Tooltip, TableContainer } from '@mui/material';
 import { Typography, Button, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { ListItem, ListItemText, ListItemButton } from '@mui/material';
 import { buyingRecordContext } from '../contexts/context';
@@ -7,6 +7,7 @@ import { useBuyingRecordContext } from '../hooks/useBuyingRecords';
 import { useGlobalContext } from '../hooks/useGlobalContext';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import DragAndDropBox from '../components/utils/DragAndDropBox';
+import LaunchIcon from '@mui/icons-material/Launch'
 
 export const RECORDSTATUSES = {
     'PENDING': 'Pendiente',
@@ -81,11 +82,13 @@ const BuyingRecordDetails = ({ record, onBack }) => {
   const {authenticatedUser} = useGlobalContext();
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentRef, setPaymentRef] = useState('');
-
+  const [openImage, setOpenImage] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState(record.payment_details || []);
   useEffect(() => {
     if (record){
       setPaymentMethod(record.payment_method || '');
       setPaymentRef(record.payment_proof || '');
+      setPaymentDetails(record.payment_details || []);
     }
   }, [record]);
   const generateOrderSummary = () => {
@@ -141,33 +144,89 @@ const handleWhatsAppClick = () => {
             ))}
           </TableBody>
         </Table>
-                  {paymentMethod && <FormControl fullWidth variant="outlined" sx={{ mt: 2 }}>
-                    <InputLabel id="payment-method-label">Método de pago</InputLabel>
-                    <Select
-                      labelId="payment-method-label"
-                      id="payment-method-select"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      label="Método de pago"
-                      fullWidth
-                      disabled
-                    >
-                      <MenuItem value="effective">Efectivo</MenuItem>
-                      <MenuItem value="transfer">Transferencia</MenuItem>
-                      <MenuItem value="movil_pay">Pago Móvil</MenuItem>
-                    </Select>
-                    
-                  </FormControl>}
-                 {paymentMethod && paymentMethod != "effective" && paymentRef && <DragAndDropBox
-                      disabled
+        <Dialog open={openImage} onClose={() => setOpenImage(false)}>
+          <DialogTitle>Comprobante de Pago</DialogTitle>
+          <DialogContent>
+            <img
+              src ={openImage}
+              alt="Comprobante de pago"
+              style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenImage(false)}>Cerrar</Button>
+          </DialogActions>
+        </Dialog> 
 
-                    setFieldValue={(file) => {}}
-                    field={"payment_proof"}
-                    label={"Referencia de pago"}
-                    value={paymentRef}
-                    width={160}
-                    height={160}
-                  />}
+
+        {/* Lista de pagos existentes */}
+        {paymentDetails.length > 0 && (
+          <>
+            <Typography variant="h6" sx={{ mt: 2 }}>Pagos Registrados:</Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Método</TableCell>
+                    <TableCell>Monto</TableCell>
+                    <TableCell>Referencia</TableCell>
+                    <TableCell>{
+                      record?.status === 'PENDING' ? 'Acciones' : 'Imagen'
+                    }</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  
+                  {paymentDetails.map((payment, index) => (
+                    <TableRow key={payment.id || index}>
+                      <TableCell>
+                        {payment.method === 'effective' && 'Efectivo'}
+                        {payment.method === 'transfer' && 'Transferencia'}
+                        {payment.method === 'movil_pay' && 'Pago Móvil'}
+                      </TableCell>
+                      <TableCell>Bs.{payment.amount}</TableCell>
+                      <TableCell>{payment.reference}</TableCell>
+                      <TableCell>
+
+                        
+                        {payment.proof && record?.status === 'COMPLETED' && (
+                          <Box
+                            sx={{position: 'relative', display: 'inline-block', cursor: 'pointer'}}
+                          >
+                          <Tooltip
+                             onClick={() => setOpenImage(
+                              typeof payment.proof === 'string' ? payment.proof : URL.createObjectURL(payment.proof)
+                            )}
+                            title="Ver Comprobante"
+                            placement="top"
+s
+
+                            >
+                              <div className='absolute top-2 right-2 p-1 z-10 bg-white rounded-full shadow-md cursor-pointer'>
+                              <LaunchIcon fontSize='small' />
+                              </div>
+                          <img 
+                           
+                            src={typeof payment.proof === 'string' ? payment.proof : URL.createObjectURL(payment.proof)} 
+                            alt="Comprobante de pago" 
+                            style={{ width: '140px', height: '140px', objectFit: 'cover', cursor: 'pointer',
+
+                              border: '1px solid #ccc',
+                              borderRadius: '8px',
+                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                             }} 
+                          />
+                          </Tooltip>
+                          </Box>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
         {console.log(authenticatedUser.id, record?.user?.id)}
    {authenticatedUser.id == record?.user?.id && <Button
                 variant="contained"
