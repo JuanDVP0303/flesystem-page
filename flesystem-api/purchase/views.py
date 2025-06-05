@@ -180,6 +180,22 @@ class PurchaseViewset(viewsets.ModelViewSet):
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
+        
+    @action(detail=False, methods=['get'], url_path='credit-alerts')
+    def credit_alerts(self, request):
+        """Obtener órdenes a crédito próximas a vencer"""
+        today = timezone.now().date()
+        three_days_later = today + timedelta(days=3)
+        
+        upcoming_orders = Order.objects.filter(
+            order_type='CREDIT',
+            due_date__range=[today, three_days_later],
+            status='COMPLETED'
+        ).order_by('due_date')
+        
+        serializer = OrderSerializer(upcoming_orders, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'], url_path='update-sold-quantity')
     def update_sold_quantity(self, request, id=None):
         """Actualizar cantidad vendida para consignación"""

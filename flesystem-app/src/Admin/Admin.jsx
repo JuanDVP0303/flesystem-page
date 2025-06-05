@@ -1082,7 +1082,7 @@ const CreditAlertsTable = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {alertsToShow.map((alert) => (
+            {alertsToShow?.map((alert) => (
               <TableRow key={alert.id}>
                 <TableCell>#{alert.id}</TableCell>
                 <TableCell>{alert.product_name}</TableCell>
