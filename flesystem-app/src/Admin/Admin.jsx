@@ -1117,6 +1117,7 @@ const CreditAlertsTable = () => {
                   <Button
                     variant="contained"
                     color="primary"
+                    disabled={alert.credit_paid}
                     onClick={() => {
                       api
                         .post(`/purchase/orders/${alert.id}/mark-paid/`)
