@@ -1,4 +1,5 @@
 import {
+  Paper,
   Table,
   TableBody,
   TableCell,
@@ -9,11 +10,11 @@ import {
 import PropTypes from 'prop-types';
 const TableGenerator = ({ labels, data, rowFields }) => {
   return (
-    <TableContainer sx={{width:{
+    <TableContainer  sx={{width:{
         xs:"85vw",
         sm:"85vw",
         md:"100%",
-      }, margin:4}
+      }, }
     }>
     <Table className="min-w-full">
         <TableHead>

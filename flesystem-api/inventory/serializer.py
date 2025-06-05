@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Inventory, Product, ProductVariants, Movement, ProductBatch
+from purchase.models import Provider
 # from operators.models import BranchOffice
 from .utils import calculate_price_unit, calculate_quantity
 class InventorySerializer(serializers.ModelSerializer):
@@ -30,7 +31,11 @@ class ProductBatchSerializer(serializers.ModelSerializer):
         
 class ProductSerializer(serializers.ModelSerializer):
     variants = serializers.SerializerMethodField()
-    
+    providers = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Provider.objects.all(),
+        required=False
+    )
     def get_variants(self, obj):
         try:
             variants = ProductVariants.objects.filter(product=obj)

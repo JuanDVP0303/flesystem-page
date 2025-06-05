@@ -14,7 +14,6 @@ export const BuyingRecordProvider = ({ children }) => {
             return response.data;
         } catch (error) {
             console.error('Error fetching buying records:', error);
-            throw error;
         }
     }, []);
 
@@ -75,6 +74,10 @@ export const BuyingRecordProvider = ({ children }) => {
             }
             else{
                 console.log("error,", response)
+                if(response.status == 500){
+                    toast.error("Error interno del servidor, por favor intente más tarde");
+                    return
+                }
                 const errorData = response.data
                 for (let key in errorData) {
                     const message = errorData[key];
@@ -94,7 +97,6 @@ export const BuyingRecordProvider = ({ children }) => {
                 const message = error.response.data[key];
                 toast.error(message);}
             console.error('Error updating order status:', error);
-            throw error;
         }
     };
 

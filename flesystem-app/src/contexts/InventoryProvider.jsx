@@ -33,8 +33,11 @@ export const InventoryProvider = ({ children }) => {
 
     const addProduct = async(productFormRef, formValues) => {
         const formData = new FormData(productFormRef.current)
+        formValues.providers.forEach(providerId => {
+          formData.append('providers[]', providerId);
+      });
         let errorThrowed = false
-        formData.set('provider', formValues.provider)
+        // formData.set('provider', formValues.provider)
         let res;
         try{
             res = await api.post("/inventory/products/", formData)

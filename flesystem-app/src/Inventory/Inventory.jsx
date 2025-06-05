@@ -215,6 +215,17 @@ const IncomeInventory = () => {
   const {providers, getProviders} = usePurchaseContext()
   const [formValues, setFormValues] = useState(formValuesDefault);
   const [searchedProviders, setSearchedProviders] = useState([])
+  const [selectedProviders, setSelectedProviders] = useState([]);
+  
+    const handleProviderChange = (event, values) => {
+        setSelectedProviders(values);
+        setFormValues({
+            ...formValues,
+            providers: values.map(p => p.id)
+        });
+    };
+
+
   useEffect(() => {
     getProviders()
   }, [])
@@ -314,13 +325,6 @@ const IncomeInventory = () => {
   } 
 
 
-  /*
-    -Generar componente de visualización de productos seleccionados en el carrito de compras
-    -En la visualización de los productos agregados en las compras, poner inputs de cantidad ademas de mostrar el precio unitario
-    -Agregar al final un boton de "Generar pedido" que al hacer click, genere un pedido con los productos seleccionados y limpie el carrito
-    -Poner un mensaje como "Listo, tu pedido ha sido generado, ponte en contacto con el proveedor para coordinar el pago y la entrega"
-    -Luego la lógica del operador para aceptar o rechazar el pedido, caso aprobado se actualiza el stock y se genera el comprobante de compra
-  */
 
   return (
     <Box className="p-5">
@@ -348,7 +352,8 @@ const IncomeInventory = () => {
             toast.error("El stock mínimo no puede ser mayor al stock máximo")
             return
           }
-          if(!formValues.provider){
+          console.log(formValues)
+          if(!formValues.providers || formValues.providers.length == 0){
             toast.error("Debes seleccionar un proveedor")
             return
           }
@@ -368,12 +373,14 @@ const IncomeInventory = () => {
         ref={formRef}
       >
         <Box sx={{ width: "100%" }}>
+          {console.log(selectedProviders)}
             <GridField>
             <SearchAutocomplete
+              multiple
               options={providers}
-              onChange={handleChange}
+              onChange={handleProviderChange}
               required={true}
-              value={formValues?.provider ?? null}
+              value={selectedProviders || []}
               name={"provider"}
               placeholder={"Proveedor"}
               searchFunction={searchProviders}

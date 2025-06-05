@@ -67,11 +67,11 @@ class ProductsViewset(viewsets.ModelViewSet):
         #Mostrar los query params
         print("QUERY PARAMS", request.query_params)
         print("LISTANDO")
-        if request.query_params.get("provider"):
-            provider = request.query_params.get("provider")
-            queryset = queryset.filter(provider__id=provider)
-            serializer = self.get_serializer(queryset, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        # if request.query_params.get("provider"):
+        #     provider_ids = request.query_params.getlist("provider[]")
+        #     queryset = queryset.filter(providers__id__in=provider_ids)
+        #     serializer = self.get_serializer(queryset, many=True)
+        #     return Response(serializer.data, status=status.HTTP_200_OK)
         # Create a custom response including both products and inventory value
         response_data = {
             'products': serializer.data,
@@ -94,7 +94,9 @@ class ProductsViewset(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         product = serializer.save()
-
+        providers = request.data.getlist('providers[]')  # Obtener lista de IDs
+        product.providers.set(providers)
+        
 
         sell_price = request.data.get("sell_price")
         sell_price = sell_price
@@ -233,6 +235,10 @@ class ProductsViewset(viewsets.ModelViewSet):
         serializer = ProductSerializer(product, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        # if 'providers' in request.data:
+        #     print(request.data.get("providers"))
+        #     providers = request.data.getlist('providers')
+        #     product.providers.set(providers)
         if batch:
             batch = get_object_or_404(ProductBatch, batch=batch)
             self.update_batch(request, batch, data)
@@ -344,7 +350,7 @@ class ProductsViewset(viewsets.ModelViewSet):
                     'min_stock': product.min_stock,
                     'max_stock': product.max_stock,
                     'product_id': product.id,
-                    'provider_id': product.provider.id,
+                    'providers': product.providers.values_list('id', flat=True) if product.providers.exists() else [],
                     'sell_price': product.sell_price,
                     'last_completed_order_price_unit': last_completed_order_price_unit.get('price_unit') if last_completed_order_price_unit else 0,
                 })        
@@ -378,7 +384,7 @@ class ProductsViewset(viewsets.ModelViewSet):
                         'min_stock': product.min_stock,
                         'max_stock': product.max_stock,
                         # 'product_id': product.id,
-                        'provider_id': product.provider.id if product.provider else None,
+                        # 'provider_id': product.provider.id if product.provider else None,
                         'sell_price': product.sell_price
                     })
 
@@ -396,7 +402,7 @@ class ProductsViewset(viewsets.ModelViewSet):
                 'min_stock': 'Stock Mínimo',
                 'max_stock': 'Stock Máximo',
                 # 'product_id': 'ID del Producto',
-                'provider_id': 'ID del Proveedor',
+                # 'provider_id': 'ID del Proveedor',
                 'sell_price': 'Precio de Venta'
             })
 
@@ -574,7 +580,7 @@ class InventoryReportsViewset(viewsets.ViewSet):
                         'min_stock': product.min_stock,
                         'max_stock': product.max_stock,
                         'product_id': product.id,
-                        'provider_id': product.provider.id if product.provider else None,
+                        # 'provider_id': product.r if product.provider else None,
                         'provider_name': product.provider.name if product.provider else None,
                         'sell_price': product.sell_price
                     })
@@ -584,7 +590,7 @@ class InventoryReportsViewset(viewsets.ViewSet):
                 "Producto": p.get("product_name"),
                 "Stock Actual": p.get("total_quantity"),
                 "Precio de Venta": p.get("sell_price"),
-                "Proveedor": p.get("provider_name"),
+                # "Proveedor": p.get("provider_name"),
                 "Stock Mínimo": p.get("min_stock"),
                 "Stock Máximo": p.get("max_stock"),
             } for p in min_stock_products])

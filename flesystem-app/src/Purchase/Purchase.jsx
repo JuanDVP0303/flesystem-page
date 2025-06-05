@@ -12,6 +12,8 @@ import {
   MenuItem,
   Select,
   TextField,
+  Tooltip,
+  Typography,
 } from "@mui/material";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import { useGlobalContext } from "../../src/hooks/useGlobalContext";
@@ -29,12 +31,13 @@ import { api } from "../utils/api";
 import { toast } from "react-toastify";
 import ProductTable from "../Inventory/components/ProductTable";
 import { FilterButton } from "../BuyingRecords/BuyingRecords";
+import ConsignmentManager from "./ConsignmentManager";
 
 const Purchase = () => {
   const { authenticatedUser } = useGlobalContext();
-  const { setPurchasesModalType, getProviders, getOrders, orders } = usePurchaseContext();
+  const { purchasesModalType, setPurchasesModalType, getProviders, getOrders, orders } = usePurchaseContext();
   const [statusFilter, setStatusFilter] = useState('PENDING');
-
+  const [openConsignationManager, setOpenConsignationManager] = useState(false);
   const filteredOrders = orders.filter(order => 
     statusFilter ? order.status === statusFilter : true
   );
@@ -46,6 +49,8 @@ const Purchase = () => {
     getProviders();
     getOrders();
   }, [authenticatedUser]);
+
+
 
   return (
     <Box
@@ -114,13 +119,17 @@ const Purchase = () => {
             <FilterButton status="CANCELLED" label="Cancelados" statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
           </Box>
       <MiniCard>
-      
-        <Box className="flex flex-col md:flex-row justify-center gap-5">
         <TableGenerator
-              labels={["Producto", "Cantidad Prevista", "Cantidad Real", "Proveedor", "Costo Total Esperado", "Costo Total Final", "Fecha", "Acción", "Status"]}
+              labels={["Producto", "Cantidad Prevista", "Cantidad Real", "Proveedor", "Tipo", "Costo Total Esperado", "Costo Total Final", "Fecha", "Acción", "Status"]}
               data={filteredOrders.map(order => {
+              const orderTypeMap = {
+              'COUNTED': 'Contado',
+              'CREDIT': 'Crédito',
+              'CONSIGNATION': 'Consignación'
+            };
                 return {
                   ...order,
+                  order_type: orderTypeMap[order.order_type] || order.order_type,
                   total_cost: `Bs.${order.total_cost.toFixed(2)}`,
                   real_total_cost: `Bs.${(order.real_quantity * order.price_unit).toFixed(2)}`,
                   status: (
@@ -131,18 +140,25 @@ const Purchase = () => {
                     } w-3 h-3 rounded-full`}></Box>                  
                   ),
                   action: (
+                    <Box sx={{
+                      display: "flex",
+                    }}>
+                    <Tooltip title="Ver detalles de la compra">
                     <IconButton
                       onClick={() => {
+                        console.log(order)
                         setPurchasesModalType(order);
                       }}
                     >
                       <VisibilityIcon />
                     </IconButton>
+                    </Tooltip>
+
+                    </Box>
                   )
                 }}) || []}
-              rowFields={["product_name", "quantity", "real_quantity", "provider_name", "total_cost", "real_total_cost","purchase_date", "action", "status"]}
+              rowFields={["product_name", "quantity", "real_quantity", "provider_name", "order_type", "total_cost", "real_total_cost","purchase_date", "action", "status"]}
             />
-        </Box>
       </MiniCard>
       <PurchaseModal />
     </Box>
@@ -178,11 +194,13 @@ const PurchaseSection = () => {
     total_cost: 0,
     purchase_date: "",
     invoice_number: "",
+    order_type: "COUNTED", // Nuevo campo: tipo de orden
+    credit_days: 0,        // Nuevo campo: días de crédito
   });
   const [providers, setProviders] = useState([]);
   const [provider, setProvider] = useState([]);
   const { searchProductDebounce,  setSearchedProducts,  } = useInventoryContext();
-  const {  createPurchase, purchasesModalType, setPurchasesModalType, updateOrderStatus } = usePurchaseContext();
+  const { createPurchase, purchasesModalType, setPurchasesModalType, updateOrderStatus } = usePurchaseContext();
   const [order, setOrder] = useState(null)
   const formRef = useRef();
   const {searchedProducts, } = useInventoryContext()
@@ -209,12 +227,39 @@ const PurchaseSection = () => {
   };
 
   const handleChange = (e) => {
+    console.log("ASDASD", e.target.name, e.target.value)
     const { name, value } = e.target;
     setFormValues({
       ...formValues,
       [name]: value,
     });
   };
+
+
+  
+const generateShortageReport = async (orderId) => {
+  try {
+    const response = await api.get(`/purchase/orders/${orderId}/shortage-report/`, {
+      responseType: 'blob', // Para manejar la respuesta como blob (PDF)
+    });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+    link.setAttribute('download', `diferencia_orden_${orderId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Limpiar
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+    
+    return true;
+  } catch (error) {
+    toast.error("Error al generar el reporte de diferencia");
+    console.error(error);
+    return false;
+  }
+};
 
   useEffect(() => {
     setFormValues(prev => {
@@ -243,7 +288,8 @@ const PurchaseSection = () => {
         total_cost: purchasesModalType.total_cost,
         purchase_date: purchasesModalType.purchase_date,
         invoice_number: purchasesModalType.invoice_number,
-        real_quantity: purchasesModalType.real_quantity
+        real_quantity: purchasesModalType.real_quantity,
+        order_type: purchasesModalType.order_type || "COUNTED", // Asegurarse de que el tipo de orden esté definido
       })
     }
   } , [purchasesModalType])
@@ -258,6 +304,11 @@ const PurchaseSection = () => {
         }}
       >
         <Box sx={{ width: "100%" }}>
+        {typeof purchasesModalType === "object" && 
+          purchasesModalType?.order_type === "CONSIGNATION" && 
+          purchasesModalType?.status === "COMPLETED" && (
+          <ConsignmentManager order={purchasesModalType} />
+        )}
         <Box className={`${
                       purchasesModalType?.status === "COMPLETED" ? "bg-green-500" :
                       purchasesModalType?.status === "PENDING" ?  "bg-yellow-500":
@@ -269,6 +320,8 @@ const PurchaseSection = () => {
                           "Denegado"
                         }
                       </Box> 
+
+
               <div className="flex flex-col flex-1">
                 <FormLabel>Proveedor</FormLabel>
                 <Autocomplete
@@ -379,6 +432,25 @@ const PurchaseSection = () => {
               />
             </GridField>
           </Grid>
+          <GridField>
+  {formValues.order_type === 'CREDIT' && (
+    <FieldGroup
+      onChange={handleChange}
+      value={formValues.credit_days}
+      name="credit_days"
+      required={true}
+      label="Días de crédito"
+      numeric={true}
+      placeholder="Ej: 15"
+    />
+  )}
+  {console.log(formValues)}
+  {formValues.order_type === 'CONSIGNATION' && (
+    <Typography variant="body2" color="textSecondary">
+      Los productos se registrarán como consignados
+    </Typography>
+  )}
+</GridField>
      {typeof purchasesModalType == "object" && <FieldGroup
                 onChange={handleChange}
                 value={formValues.real_quantity}
@@ -419,13 +491,32 @@ const PurchaseSection = () => {
 
             {typeof purchasesModalType === "object" && purchasesModalType?.status == "PENDING" && (
                   <>
-                  <Button type="submit" variant="outlined" color="primary" onClick={() => {
+                  <Button type="submit" variant="outlined" color="primary" onClick={async () => {
+                    console.log(formValues)
                     if(!formValues.real_quantity){
                       toast.error("Por favor, ingrese la cantidad real");
                       return
                     }
-                    updateOrderStatus(order.id, "COMPLETED", formValues.real_quantity)
-                    setPurchasesModalType(null)
+                    if(formValues.real_quantity <= 0){
+                      toast.error("La cantidad real debe ser mayor a 0");
+                      return
+                    }
+                    if(formValues.real_quantity > formValues.quantity){
+                      toast.error("La cantidad real no puede ser mayor a la cantidad prevista");
+                      return
+                    }
+
+
+                  await updateOrderStatus(order.id, "COMPLETED", formValues.real_quantity)
+                  setPurchasesModalType(null)
+                    // Si es de tipo CONTADO y hay diferencia, generar reporte
+                  if (formValues.real_quantity < formValues.quantity) {
+                    const reportGenerated = await generateShortageReport(order.id);
+                    if (!reportGenerated) {
+                      return; // Si hay error, no continuar
+                    }
+                  }
+
 
                   }}>
                     Aceptar compra
@@ -480,6 +571,7 @@ const ProviderSection = () => {
       }}
     >
       <MiniCard>
+        
         <Box className="flex flex-col md:flex-row justify-center gap-5">
           <GenericButton
             outlined={state == "view"}
@@ -538,6 +630,7 @@ const ProvidersView = ({ state }) => {
     if (provider) {
       providerData.id = state;
     }
+    providerData["document"] = providerData["document"].replace(/[^0-9]/g, ""); // Solo números
     providerData["document"] = `${providerData["type_of_document"]}-${providerData["document"]}`;
     // console.log("PROVIDER DATA", providerData);
     
@@ -607,7 +700,7 @@ const ProvidersView = ({ state }) => {
               padding: 2,
             }}>
           <Box>
-            <ProductTable isProvider={true} products={providerProducts?.length > 0 ? providerProducts : []} />
+            <ProductTable isProvider={provider} products={providerProducts?.length > 0 ? providerProducts : []} />
           </Box>
           </Card>
           </ModalComponent>
@@ -754,6 +847,7 @@ export const MiniCard = ({ children }) => {
         justifyContent: "space-between",
         borderRadius: "20px",
         my: "10px",
+        overflow: "hidden",
       }}
     >
       {children}

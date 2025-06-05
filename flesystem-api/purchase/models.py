@@ -1,5 +1,5 @@
 from django.db import models
-
+from datetime import timedelta
 # Create your models here.
 class Provider(models.Model):
     name = models.CharField(max_length=255)
@@ -21,6 +21,11 @@ class Order(models.Model):
         ('COMPLETED', 'Completada'),
         ('CANCELLED', 'Cancelada'),
     ]
+    ORDER_TYPE_CHOICES = [
+        ('COUNTED', 'Contado'),
+        ('CREDIT', 'Crédito'),
+        ('CONSIGNATION', 'consignation'),
+    ]
     invoice_number = models.CharField(max_length=255, null=True, blank=True)
     provider = models.ForeignKey("purchase.Provider", on_delete=models.CASCADE, related_name="orders")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -31,7 +36,30 @@ class Order(models.Model):
     quantity = models.PositiveIntegerField()
     real_quantity = models.PositiveIntegerField(null=True, blank=True)
     price_unit = models.FloatField(null=True, blank=True)
-    
+    credit_days = models.PositiveIntegerField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    order_type = models.CharField(
+        max_length=20,
+        choices=ORDER_TYPE_CHOICES,
+        default='COUNTED',
+        null=True,
+        blank=True
+    )
+    consignment_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', 'Pendiente'),
+            ('PARTIAL', 'Parcialmente vendido'),
+            ('COMPLETED', 'Completado'),
+            ('CANCELLED', 'Cancelado'),
+        ],
+        default='PENDING',
+        null=True,
+        blank=True
+    )
+    credit_paid = models.BooleanField(default=False)
+    sold_quantity = models.PositiveIntegerField(default=0, null=True, blank=True)
+
     def __str__(self):
         return f"Orden {self.id} - {self.provider.name}"
 

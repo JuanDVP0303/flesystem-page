@@ -16,7 +16,8 @@ class Product(models.Model):
     name = models.CharField(max_length=100)
     sell_price = models.FloatField(null=True, blank=True)
     sku = models.CharField(max_length=100, null=True, blank=True)
-    provider = models.ForeignKey("purchase.Provider", on_delete=models.CASCADE, null=True, blank=True)
+    providers = models.ManyToManyField("purchase.Provider", related_name="products", blank=True)
+    # provider = models.ForeignKey("purchase.Provider", on_delete=models.CASCADE, null=True, blank=True)
     min_stock = models.FloatField(null=True, blank=True)
     max_stock = models.FloatField(null=True, blank=True)
     category = models.CharField(max_length=100, null=True, blank=True)
@@ -70,6 +71,15 @@ class ProductBatch(models.Model):
     waste = models.FloatField(null=True, blank=True)
     safety_stock = models.FloatField(null=True, blank=True)
     purchase_order = models.ForeignKey("purchase.Order", on_delete=models.CASCADE, null=True, blank=True)
-    
+    sold_quantity = models.PositiveIntegerField(default=0)  # Nueva cantidad vendida
+
+    is_consignment = models.BooleanField(default=False)
+    consignment_order = models.ForeignKey(
+        "purchase.Order", 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='consignment_batches'
+    )
     def __str__(self):
         return f"{self.product.name} - {self.batch} - {self.expiration_date}"

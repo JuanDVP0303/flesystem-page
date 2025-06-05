@@ -118,6 +118,13 @@ const PurchasesProvider = ({ children }) => {
         console.log("FORM VALUES", {
 
             ...formValues})
+
+            console.log(formValues.product.quantity, formValues.quantity, formValues.product.max_quantity)
+
+        if(formValues.product.quantity + Number(formValues.quantity) > formValues.product.max_stock){
+            toast.error("La cantidad total a comprar supera el stock máximo, actual stock: " + formValues.product.quantity)
+            return
+        }
         let res;
         try{
           res = await api.post("/purchase/orders/create-order/", {
@@ -142,7 +149,6 @@ const PurchasesProvider = ({ children }) => {
       }
     
       const updateOrderStatus = async (orderId, status, real_quantity) => {
-        console.log("ASDASDA")
         try {
             if (!status) {
                 toast.error("Por favor selecciona un estado");
@@ -190,6 +196,41 @@ const PurchasesProvider = ({ children }) => {
         }
     }
 
+  // Nueva función para actualizar cantidad vendida
+  const updateSoldQuantity = async (orderId, soldQuantity) => {
+    try {
+      const res = await api.put(`/purchase/orders/${orderId}/update-sold-quantity/`, {
+        sold_quantity: soldQuantity
+      });
+      getOrders(); // Refrescar la lista de órdenes
+      return res.data;
+    } catch (error) {
+      toast.error("Error al actualizar la cantidad vendida");
+    }
+  };
+
+  // Nueva función para cancelar consignación
+  const cancelConsignment = async (orderId) => {
+    try {
+      const res = await api.post(`/purchase/orders/${orderId}/cancel-consignment/`);
+      getOrders(); // Refrescar la lista de órdenes
+      return res.data;
+    } catch (error) {
+      toast.error("Error al cancelar la consignación");
+    }
+  };
+
+  // Nueva función para obtener alertas de crédito
+  const getCreditAlerts = async () => {
+    try {
+      const res = await api.get('/purchase/orders/credit-alerts/');
+      return res.data;
+    } catch (error) {
+      toast.error("Error al obtener alertas de crédito");
+      return [];
+    }
+  };
+  
     const values = {
         purchasesModalType,
         providers,
@@ -207,7 +248,10 @@ const PurchasesProvider = ({ children }) => {
         formRef,
         getProvidersProducts,
         providerProducts,
-        setProviderProducts
+        setProviderProducts,
+        updateSoldQuantity,
+        cancelConsignment,
+        getCreditAlerts
     }
     return (
     <purchasesContext.Provider value={values}>{children}</purchasesContext.Provider>

@@ -15,6 +15,8 @@ import { useInventoryContext } from "../../src/hooks/useInventoryContext";
 import { SaveButton } from "./components/Buttons";
 import { useGlobalContext } from "../../src/hooks/useGlobalContext";
 import { api } from "../utils/api";
+import SearchAutocomplete from "./components/SearchAutoComplete";
+import { usePurchaseContext } from "../hooks/usePurchasesContext";
 export const genericBlue = "#1adb00";
 const ProductView = () => {
   const {  productId } = useParams();
@@ -47,8 +49,14 @@ const ProductView = () => {
     }
   };
 
-  const handleProductChange = (e) => {
-    console.log(e)
+  const handleProductChange = (e, providers) => {
+    console.log(providers)
+    if (providers){
+      setProductEdited((prev) => {
+        return { ...prev, providers: providers};
+      });
+      return;
+    }
     const { name, value } = e.target;
     setProductEdited((prev) => {
       return { ...prev, [name]: value };
@@ -215,6 +223,32 @@ export const EditButton = ({onClick, small}) => {
 }
 
 export const EditModalForm = ({ handleProductChange, product, editProduct, setEditProduct, setProductEdited, productEdited, handleSubmit, isBatch }) =>{
+  const {providers, getProviders} = usePurchaseContext()
+  const [selectedProviders, setSelectedProviders] = useState([]);
+  console.log("PRODUCT EDITED", productEdited)
+    useEffect(() => {
+      if(productEdited?.providers && providers.length > 0){
+      setSelectedProviders(providers.filter(p => {
+        return productEdited.providers.includes(p.id)
+      }))}
+    }, [productEdited])
+
+    useEffect(() => {
+      getProviders()
+    }, [])
+    console.log(selectedProviders)
+    const handleProviderChange = (event, values) => {
+      setSelectedProviders(values);
+      handleProductChange(event, values.map(p => p.id));
+      // setFormValues({
+      //     ...formValues,
+      //     providers: values.map(p => p.id)
+      // });
+  };
+    
+  const searchProviders = (partialName) => {
+    return providers.filter(provider => provider.name.toLowerCase().includes(partialName.toLowerCase()))
+  } 
   return <ModalComponent
   fullWidth={isBatch}
   title={product?.name}
@@ -286,6 +320,18 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
       name="description"
       optional={true}
     />
+    <Box sx={{mt:2}}>
+          <SearchAutocomplete
+              multiple
+              options={providers}
+              onChange={handleProviderChange}
+              required={true}
+              value={selectedProviders || []}
+              name={"provider"}
+              placeholder={"Proveedor"}
+              searchFunction={searchProviders}
+            />
+            </Box>
     <div className="flex justify-center mt-4">
     <SaveButton label="Guardar Cambios" />
     </div>
@@ -332,7 +378,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           placeholder="Ex:. Vestimenta..."
         />
       </GridField> */}
-      <GridField>
+      {/* <GridField> */}
       {/* <FieldGroup
           onChange={handleProductChange}
           value={productEdited?.location}
@@ -341,7 +387,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           name="location"
           placeholder="Ex:. Almacén A"
         /> */}
-      </GridField>
+      {/* </GridField> */}
       {/* <GridField>
       <ExpirationField 
         handleExpirationToggle={handleExpirationToggle}

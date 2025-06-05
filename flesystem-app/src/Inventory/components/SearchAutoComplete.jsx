@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Autocomplete, TextField } from '@mui/material';
+import { Autocomplete, Chip, TextField } from '@mui/material';
 
 const SearchAutocomplete = ({
   options,
@@ -14,12 +14,16 @@ const SearchAutocomplete = ({
   numeric,
   freeSolo = false,
   searchFunction,
+  multiple = false
 }) => {
   const [selectedItem, setSelectedItem] = useState(null);
   const handleChange = (event, newValue) => {
-    console.log({ target: { name, value: newValue?.id } })
+    console.log({ target: { name, value: newValue } })
     if(onChange){
-      onChange({ target: { name, value: newValue?.id } });
+      onChange({ target: { name, value: newValue } }, newValue);
+      if(multiple){
+        return;
+      }
     }
     if (newValue) {
       const itemInOptions = options.find((item) => item.name === newValue.name);
@@ -29,7 +33,8 @@ const SearchAutocomplete = ({
     }
   };
 
-  const handleInputChange = (event) => {
+  const handleInputChange = (event, values) => {
+    console.log(values)
     if(onChange){
       onChange(event);
     }
@@ -40,15 +45,17 @@ const SearchAutocomplete = ({
   };
 
 
-
+console.log(value)
   return (
     <Autocomplete
+      multiple={multiple}
       freeSolo={freeSolo}
       onChange={handleChange}
       required={required}
+      // id="tags-standard"
       disabled={disabled}
       getOptionLabel={(option) => option?.name || ''}
-      value={options.find(option => option.id == value) || null}
+      value={multiple ? value : options.find(option => option.id == value) || null}
       options={options}
       renderInput={(params) => (
         <TextField

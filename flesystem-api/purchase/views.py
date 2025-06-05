@@ -15,6 +15,11 @@ from rest_framework.response import Response
 from django.http import HttpResponse
 from users.services import log_user_action
 from django.utils import timezone
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from datetime import timedelta
 
 class PurchaseViewset(viewsets.ModelViewSet):
     queryset = Order.objects.all()
@@ -58,6 +63,17 @@ class PurchaseViewset(viewsets.ModelViewSet):
         # Procesar los productos
         quantity = request.data.get("quantity")
         price_unit = request.data.get("price_unit")
+        order_type = request.data.get("order_type", "COUNTED")
+        days_of_credit = request.data.get("days_of_credit", 0)
+        today = timezone.now()
+        due_date = today + timedelta(days=days_of_credit) if order_type == "CREDIT" else None
+        due_date = due_date.date() if due_date else None
+
+        if order_type == "CREDIT" and not days_of_credit:
+            return Response(
+                {"error": "Para órdenes a crédito, se deben especificar los días de crédito."},
+                status=400,
+            )
         print("TOTAL",float(request.data.get("total_cost",0)))
         if not product_id or not quantity or not price_unit:
             return Response(
@@ -79,6 +95,9 @@ class PurchaseViewset(viewsets.ModelViewSet):
             product=product,
             quantity=quantity,
             price_unit=price_unit,
+            order_type=order_type,
+            credit_days=days_of_credit if order_type == "CREDIT" else None,
+            due_date=due_date,
         )
         
         log_user_action(request.user, "orden", None, f"Se ha creado la orden: #{order.id}")
@@ -135,8 +154,15 @@ class PurchaseViewset(viewsets.ModelViewSet):
                 sell_price=order.product.sell_price,
                 batch=generate_random_id(),
                 description=order.product.description,
-                unit_of_measure=order.product.unit_of_measure,            
+                unit_of_measure=order.product.unit_of_measure,
+                is_consignment=(order.order_type == 'CONSIGNATION'),  # Nuevo campo
+                consignment_order=order if order.order_type == 'CONSIGNATION' else None
             )
+            if order.order_type == 'CONSIGNATION':
+                order.consignment_status = 'PENDING'
+                order.sold_quantity = 0
+                order.save()
+        
         order.real_quantity = real_quantity
         order.status = status
         order.save()
@@ -154,7 +180,167 @@ class PurchaseViewset(viewsets.ModelViewSet):
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'], url_path='update-sold-quantity')
+    def update_sold_quantity(self, request, id=None):
+        """Actualizar cantidad vendida para consignación"""
+        order = self.get_object()
+        sold_quantity = request.data.get('sold_quantity')
         
+        if not sold_quantity:
+            return Response({"error": "sold_quantity es requerido"}, status=400)
+        
+        if sold_quantity > order.quantity:
+            return Response({"error": "La cantidad vendida no puede ser mayor que la cantidad total"}, status=400)
+        
+        order.sold_quantity = sold_quantity
+        
+        # Actualizar estado de consignación
+        if sold_quantity == order.quantity:
+            order.consignment_status = 'COMPLETED'
+        elif sold_quantity > 0:
+            order.consignment_status = 'PARTIAL'
+        else:
+            order.consignment_status = 'PENDING'
+        
+        order.save()
+        return Response(OrderSerializer(order).data)
+
+    @action(detail=True, methods=['post'], url_path='cancel-consignment')
+    def cancel_consignment(self, request, id=None):
+        """Cancelar consignación y devolver productos no vendidos"""
+        order = Order.objects.get(id=id)
+        unsold_quantity = order.quantity - order.sold_quantity
+        
+        try:
+            # Obtener el batch de consignación asociado
+            batch = ProductBatch.objects.get(consignment_order=order)
+            
+            # Crear movimiento de devolución
+            if unsold_quantity > 0:
+                Movement.objects.create(
+                    product=order.product,
+                    movement_type="outcome",
+                    date=timezone.now(),
+                    quantity=unsold_quantity,
+                )
+                
+                # Eliminar el batch de consignación
+                batch.delete()
+        
+        except ProductBatch.DoesNotExist:
+            # Si no existe el batch, solo registrar la devolución
+            if unsold_quantity > 0:
+                Movement.objects.create(
+                    product=order.product,
+                    movement_type="outcome",
+                    date=timezone.now(),
+                    quantity=unsold_quantity,
+                    description=f"Devolución consignación cancelada (Orden #{order.id})"
+                )
+        
+        order.consignment_status = 'CANCELLED'
+        order.save()
+        
+        return Response({
+            "message": "Consignación cancelada",
+            "to_pay": order.sold_quantity,
+            "to_return": unsold_quantity
+        })
+    @action(detail=True, methods=['get'], url_path='shortage-report')
+    def shortage_report(self, request, id=None):
+        print("ENTRANDO POR ACA 1", id)
+        
+        #Implementar la lógica de consignación
+        order = Order.objects.get(id=id) 
+        print("ENTRANDO POR ACA 2")
+        if order.real_quantity >= order.quantity:
+            return Response({"error": "No aplica para generar reporte de diferencia"}, status=400)
+        
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="diferencia_orden_{order.id}.pdf"'
+        
+        p = canvas.Canvas(response, pagesize=letter)
+        
+        # Encabezado
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(100, 750, "Reporte de Diferencia en Recepción")
+        
+        # Detalles de la orden
+        p.setFont("Helvetica", 12)
+        y = 700
+        p.drawString(100, y, f"Orden #: {order.id}")
+        y -= 30
+        p.drawString(100, y, f"Proveedor: {order.provider.name}")
+        y -= 30
+        p.drawString(100, y, f"Producto: {order.product.name}")
+        y -= 30
+        p.drawString(100, y, f"Fecha: {order.purchase_date}")
+        
+        # Tabla de diferencias
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(100, y - 50, "Detalles de la Diferencia")
+        
+        headers = ["Concepto", "Solicitado", "Recibido", "Diferencia"]
+        data = [
+            ["Cantidad", order.quantity, order.real_quantity, order.quantity - order.real_quantity],
+            ["Monto Total", f"Bs. {order.total_cost}", 
+            f"Bs. {order.real_quantity * order.price_unit}", 
+            f"Bs. {(order.quantity - order.real_quantity) * order.price_unit}"]
+        ]
+        
+        # Dibujar tabla
+        p.setFont("Helvetica", 10)
+        y -= 100
+        col_widths = [150, 100, 100, 100]
+        
+        # Encabezados
+        for i, header in enumerate(headers):
+            p.drawString(100 + sum(col_widths[:i]), y, header)
+        
+        # Datos
+        y -= 30
+        for row in data:
+            for i, item in enumerate(row):
+                p.drawString(100 + sum(col_widths[:i]), y, str(item))
+            y -= 20
+        
+        # Firmas
+        y -= 50
+        p.drawString(100, y, "Firma Proveedor: __________________________")
+        y -= 30
+        p.drawString(100, y, "Firma Operador: __________________________")
+        y -= 30
+        p.drawString(100, y, f"Usuario: {request.user.email}")
+        
+        p.showPage()
+        p.save()
+        return response 
+    
+    
+    @action(detail=True, methods=['post'], url_path='mark-paid')
+    def mark_paid(self, request, id=None):
+        """
+        Marca una orden de compra como pagada.
+        """
+        try:
+            order = Order.objects.get(id=id)
+            order.credit_paid = True
+            order.save()
+            log_user_action(request.user, "marcar orden como pagada", None, f"Se ha marcado la orden {order.id} como pagada")
+            return Response({"message": "Orden marcada como pagada."}, status=200)
+        except Order.DoesNotExist:
+            return Response({"error": "Orden no encontrada."}, status=404) 
+
+    @action(detail=False, methods=['get'], url_path='consignments')
+    def list_consignments(self, request):
+        consignment_orders = Order.objects.filter(
+            order_type='CONSIGNATION',
+            status='COMPLETED'
+        ).order_by('-purchase_date')
+        
+        serializer = OrderSerializer(consignment_orders, many=True)
+        return Response(serializer.data)
+
 class ProviderViewset(viewsets.ModelViewSet):
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
@@ -213,7 +399,7 @@ class ProviderViewset(viewsets.ModelViewSet):
     def providers_products(self, request):
         provider_id = request.query_params.get('provider_id')
         provider = Provider.objects.get(id=provider_id)
-        products = Product.objects.filter(provider=provider)
+        products = Product.objects.filter(providers=provider)
         data = ProductSerializer(products, many=True).data
         return Response(data)
     @action(detail=True, methods=['get'], url_path='export-completed-orders')
@@ -377,3 +563,4 @@ class ProviderViewset(viewsets.ModelViewSet):
                 return response
         except Exception as e:
             return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
+
