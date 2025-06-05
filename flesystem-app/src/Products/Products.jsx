@@ -250,7 +250,7 @@ const generateOrder = async () => {
 }
 
 export const DrawerCart = ({ showProductCart, setShowProductCart, selectedProducts, setSelectedProducts, setShowPreviousPurchaseProducts, products }) => {
-  return       <Drawer anchor="right" open={showProductCart} onClose={() => setShowProductCart(false)}>
+  return       <Drawer anchor="left" open={showProductCart} onClose={() => setShowProductCart(false)}>
         <div className="w-[30rem] h-full flex flex-col p-5">
           <h2 className="text-center">Carrito de compras</h2>
           <List className="flex flex-col gap-5">
