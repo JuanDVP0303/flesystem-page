@@ -68,6 +68,7 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], url_path='update-status')
     def update_status(self, request, id=None):
         buying_record = self.get_object()
+        print("buying_record", buying_record)
         new_status = request.data.get('status')
         # payment_details = request.data.get('payment_details', [])
         #Seleccionar todos los campos del request.data que empiecen con 'payment_details' ya que el formato es payment_details[${index}][method], entoces agrupar por el index y crear una lista de diccionarios

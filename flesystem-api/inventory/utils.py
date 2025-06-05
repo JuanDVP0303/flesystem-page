@@ -89,6 +89,7 @@ def divide_batches(batch, quantity, location):
         product=batch.product,
         product_variant=batch.product_variant,
         quantity=quantity,
+        initial_quantity=batch.initial_quantity,  # Mantener la cantidad inicial
         price_unit=batch.price_unit,
         sell_price=batch.sell_price,
         location=location,
@@ -108,6 +109,7 @@ def create_batch(product, product_variant, data, is_an_existing_product=False):
         product=product,
         product_variant=product_variant,
         quantity=batch_data.get("quantity"),
+        initial_quantity=batch_data.get("quantity", batch_data.get("quantity")),  # Mantener la cantidad inicial
         price_unit=batch_data.get("price_unit"),
         sell_price=batch_data.get("sell_price"),
         location=batch_data.get("location"),

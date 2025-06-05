@@ -24,7 +24,7 @@ def update_product_batches(product, quantity_needed):
             # Determinar cantidad disponible
             if batch.is_consignment:
                 # Para consignación: disponible = total - vendido
-                available = batch.quantity - batch.sold_quantity
+                available = batch.initial_quantity - batch.sold_quantity
             else:
                 available = batch.quantity
             
@@ -73,7 +73,7 @@ def update_product_batches(product, quantity_needed):
             
             # Actualizar estado del lote
             if batch.is_consignment:
-                if batch.sold_quantity >= batch.quantity:
+                if batch.sold_quantity >= batch.initial_quantity:
                     batch.active = False
             else:
                 if batch.quantity <= 0:

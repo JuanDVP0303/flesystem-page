@@ -150,6 +150,7 @@ class PurchaseViewset(viewsets.ModelViewSet):
                 product=order.product,
                 purchase_order=order,
                 quantity=real_quantity,
+                initial_quantity=real_quantity, 
                 price_unit=order.price_unit,
                 sell_price=order.product.sell_price,
                 batch=generate_random_id(),
@@ -241,6 +242,7 @@ class PurchaseViewset(viewsets.ModelViewSet):
                 )
                 
                 # Eliminar el batch de consignación
+                print("ELIMINANDO BATCH", batch.id)
                 batch.delete()
         
         except ProductBatch.DoesNotExist:
@@ -352,7 +354,7 @@ class PurchaseViewset(viewsets.ModelViewSet):
         consignment_orders = Order.objects.filter(
             order_type='CONSIGNATION',
             status='COMPLETED'
-        ).order_by('-purchase_date')
+        ).order_by('-id')
         
         serializer = OrderSerializer(consignment_orders, many=True)
         return Response(serializer.data)

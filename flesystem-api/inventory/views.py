@@ -116,6 +116,7 @@ class ProductsViewset(viewsets.ModelViewSet):
         
         batches = ProductBatch.objects.filter(product=product)
         for batch in batches:
+            print("ELIMINANDO BATCH", batch.id)
             batch.delete()
         
         
@@ -256,7 +257,9 @@ class ProductsViewset(viewsets.ModelViewSet):
         batches = ProductBatch.objects.filter(product=product_batch)
         if batches.count() == 1:
             return Response({"error": "No se puede eliminar el único lote de un producto"}, status=status.HTTP_400_BAD_REQUEST)
+        print("ELIMINANDO BATCH", batch.id)
         batch.delete()
+        
         
         return Response(status=status.HTTP_204_NO_CONTENT)
     
