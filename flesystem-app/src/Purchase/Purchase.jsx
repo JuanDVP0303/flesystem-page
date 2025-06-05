@@ -511,6 +511,7 @@ const generateShortageReport = async (orderId) => {
 
 
                   const response = await updateOrderStatus(order.id, "COMPLETED", formValues.real_quantity)
+                  console.log("RESPONSE", response)
                   setPurchasesModalType(null)
                     // Si es de tipo CONTADO y hay diferencia, generar reporte
                   if (response.status == 200 && formValues.real_quantity < formValues.quantity) {
