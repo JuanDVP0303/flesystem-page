@@ -290,6 +290,7 @@ const generateShortageReport = async (orderId) => {
         invoice_number: purchasesModalType.invoice_number,
         real_quantity: purchasesModalType.real_quantity,
         order_type: purchasesModalType.order_type || "COUNTED", // Asegurarse de que el tipo de orden esté definido
+        credit_days: purchasesModalType.credit_days || 0, // Asegurarse de que los días de crédito estén definidos
       })
     }
   } , [purchasesModalType])
@@ -433,11 +434,13 @@ const generateShortageReport = async (orderId) => {
             </GridField>
           </Grid>
           <GridField>
+            {console.log("FORM VALUES", formValues)}
   {formValues.order_type === 'CREDIT' && (
     <FieldGroup
       onChange={handleChange}
       value={formValues.credit_days}
       name="credit_days"
+      disabled
       required={true}
       label="Días de crédito"
       numeric={true}
