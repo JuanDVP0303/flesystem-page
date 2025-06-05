@@ -364,7 +364,7 @@ s
                               </div>
                           <img 
                            
-                            src={typeof payment.proof === 'string' ? payment.proof : URL.createObjectURL(payment.proof)} 
+                            src={typeof payment.proof === 'string' ? import.meta.VITE_API_URL + payment.proof : URL.createObjectURL(payment.proof)} 
                             alt="Comprobante de pago" 
                             style={{ width: '140px', height: '140px', objectFit: 'cover', cursor: 'pointer',
 
