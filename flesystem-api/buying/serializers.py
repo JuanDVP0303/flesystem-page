@@ -3,6 +3,11 @@ from rest_framework import serializers
 from django.db.models import Sum, F
 from inventory.models import ProductBatch
 class PaymentDetailSerializer(serializers.ModelSerializer):
+    proof = serializers.SerializerMethodField()
+    def get_proof(self, obj):
+        if obj.proof:
+            return obj.proof.url
+        return None
     class Meta:
         model = PaymentDetail
         fields = '__all__'

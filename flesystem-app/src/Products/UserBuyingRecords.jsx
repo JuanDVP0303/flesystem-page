@@ -195,7 +195,7 @@ const handleWhatsAppClick = () => {
                           >
                           <Tooltip
                              onClick={() => setOpenImage(
-                              typeof payment.proof === 'string' ? payment.proof : URL.createObjectURL(payment.proof)
+                              typeof payment.proof === 'string' ? import.meta.VITE_URL_API + payment.proof : URL.createObjectURL(payment.proof)
                             )}
                             title="Ver Comprobante"
                             placement="top"
