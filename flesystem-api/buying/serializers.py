@@ -42,7 +42,12 @@ class BuyingRecordsProductsSerializer(serializers.ModelSerializer):
 
 class BuyingRecordsSerializer(serializers.ModelSerializer):
     payment_details = PaymentDetailSerializer(many=True, read_only=True)
-
+    payment_proof = serializers.SerializerMethodField()
+    
+    def get_payment_proof(self, obj):
+        if obj.payment_proof:
+            return obj.payment_proof.url
+        return None
     class Meta:
         model = BuyingRecords
         fields = '__all__'

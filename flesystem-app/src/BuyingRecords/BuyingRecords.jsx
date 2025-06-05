@@ -33,16 +33,12 @@ const OperatorDashboard = () => {
   const [paymentRef, setPaymentRef] = useState('');
   const [searchedId, setSearchedId] = useState('');
   const [paymentDetails, setPaymentDetails] = useState([]);
-  const [newPayment, setNewPayment] = useState({
-    method: '',
-    amount: '',
-    reference: '',
-    proof: null
-  });
+  const [newPayment, setNewPayment] = useState({});
   const [openImage, setOpenImage] = useState(false);
 
   useEffect(() => {
     if (selectedOrder) {
+      console.log("Selected Order", selectedOrder)
       setPaymentDetails(selectedOrder.payment_details || []);
     }
   }, [selectedOrder]);
@@ -71,6 +67,12 @@ const OperatorDashboard = () => {
       return;
     }
 
+    //validar la longitud de la referencia
+    if (newPayment.reference && newPayment.reference.length > 20) {
+      toast.error("La referencia no puede tener más de 20 caracteres");
+      return;
+    }
+
     //Validar que la referencia no sea igual a otra anterior
     if (newPayment.reference && paymentDetails.some(payment => payment.reference === newPayment.reference)) {
       toast.error("Ya existe un pago con esa referencia");
@@ -81,12 +83,7 @@ const OperatorDashboard = () => {
       id: Date.now() // ID temporal para React
     }]);
     
-    setNewPayment({
-      method: '',
-      amount: '',
-      reference: '',
-      proof: null
-    });
+    setNewPayment({});
   };
 
   const handleRemovePayment = (index) => {
@@ -143,7 +140,19 @@ const OperatorDashboard = () => {
   };
 
   const handleCloseDialog = () => {
+    console.log("CERANDO")
     setSelectedOrder(null);
+    setPaymentMethod('');
+    setPaymentRef('');
+    setPaymentDetails([]);
+    setNewPayment({
+      method: '',
+      amount: '',
+      reference: '',
+      proof: null
+    });
+    setOpenImage(false);
+
   };
 
   const handleUpdateStatus = async (orderId, newStatus) => {
@@ -317,6 +326,7 @@ const OperatorDashboard = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
+                  
                   {paymentDetails.map((payment, index) => (
                     <TableRow key={payment.id || index}>
                       <TableCell>
@@ -412,14 +422,21 @@ s
               <Grid item xs={12} sm={3} sx={{mt:1}}>
                 <FormControl fullWidth>
                   <InputLabel>Método de pago</InputLabel>
+                  {console.log("New Payment", newPayment)}
                   <Select
                     value={newPayment.method}
                     onChange={(e) => setNewPayment({...newPayment, method: e.target.value})}
                     label="Método de pago"
                   >
-                    <MenuItem value="effective">Efectivo</MenuItem>
+                    {/* Mostrar efectivo, pago movil y transferencia pero una sola ves por metodo, osea que no se pueda elegir el mismo metodo dos veces en un mismo pedido */}
+
+                    {
+                      paymentDetails.some(payment => payment.method === 'effective') ? null :
+                        <MenuItem value="effective">Efectivo</MenuItem>
+
+                    }
                     <MenuItem value="transfer">Transferencia</MenuItem>
-                    <MenuItem value="movil_pay">Pago Móvil</MenuItem>
+                    <MenuItem value="movil_pay">Pago Móvil</MenuItem> 
                   </Select>
                 </FormControl>
               </Grid>
@@ -431,15 +448,24 @@ s
                   fullWidth
                   value={newPayment.amount}
                   onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})}
-                  inputProps={{ min: 0.01, max: remaining.toFixed(2), step: 0.01 }}
+                  inputProps={{ min: 0.01, max: remaining.toFixed(2), step: newPayment.method !== 'effective' ? 0.01 : 1 }}
                 />
               </Grid>
               
               {newPayment.method && newPayment.method !== 'effective' && (
                 <Grid item xs={12} sm={3} sx={{mt:1}}>
+                  {/* hacer que solo sean numeros enteros */}
                   <TextField
                     label="Referencia"
                     fullWidth
+                    inputProps={{ 
+                      maxLength: 20,
+                      step: 1,
+                    }}
+
+                    helperText="Máximo 20 caracteres"
+                    placeholder="Ingrese referencia"
+                    type='number'
                     value={newPayment.reference}
                     onChange={(e) => setNewPayment({...newPayment, reference: e.target.value})}
                   />
@@ -455,7 +481,7 @@ s
                     field={"payment_proof"}
                     // label={"Comprobante"}
                     title = "Comprobante de pago"
-                    value={newPayment.proof}
+                    value={typeof newPayment.proof == "string" ? import.meta.VITE_API_URL + newPayment.proof : newPayment.proof}
                     width={100}
                     height={100}
                   />
