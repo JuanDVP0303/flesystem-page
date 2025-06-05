@@ -189,7 +189,7 @@ class PurchaseViewset(viewsets.ModelViewSet):
         
         upcoming_orders = Order.objects.filter(
             order_type='CREDIT',
-            due_date__range=[today, three_days_later],
+            # due_date__range=[today, three_days_later],
             status='COMPLETED'
         ).order_by('due_date')
         
