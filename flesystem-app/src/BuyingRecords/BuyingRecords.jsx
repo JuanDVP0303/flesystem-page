@@ -352,7 +352,7 @@ const OperatorDashboard = () => {
                           >
                           <Tooltip
                              onClick={() => setOpenImage(
-                              typeof payment.proof === 'string' ? payment.proof : URL.createObjectURL(payment.proof)
+                              typeof payment.proof === 'string' ? import.meta.VITE_API_URL + payment.proof : URL.createObjectURL(payment.proof)
                             )}
                             title="Ver Comprobante"
                             placement="top"
@@ -481,7 +481,7 @@ s
                     field={"payment_proof"}
                     // label={"Comprobante"}
                     title = "Comprobante de pago"
-                    value={typeof newPayment.proof == "string" ? import.meta.VITE_API_URL + newPayment.proof : newPayment.proof}
+                    value={import.meta.VITE_API_URL + newPayment.proof}
                     width={100}
                     height={100}
                   />
