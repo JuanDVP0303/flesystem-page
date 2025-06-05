@@ -36,6 +36,13 @@ class ProductSerializer(serializers.ModelSerializer):
         queryset=Provider.objects.all(),
         required=False
     )
+    image = serializers.SerializerMethodField()
+
+    def get_image(self, obj):
+        if obj.product_image:
+            return obj.product_image.url
+        return None
+
     def get_variants(self, obj):
         try:
             variants = ProductVariants.objects.filter(product=obj)
