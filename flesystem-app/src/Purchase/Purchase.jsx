@@ -609,7 +609,7 @@ const generateShortageReport = async (orderId) => {
                       return
                     }
 
-                    if(!Number.isInteger(formValues.real_quantity)){
+                    if(!Number.isInteger(Number(formValues.real_quantity))){
                       toast.error("La cantidad real debe ser un número entero");
                       return
                     }
