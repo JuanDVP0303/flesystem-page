@@ -49,21 +49,15 @@ import MenuIcon from "@mui/icons-material/Menu";
 import PersonIcon from "@mui/icons-material/Person";
 import { GenericButton } from "../Inventory/components/Buttons";
 import ConsignmentManagerDialog from "../Purchase/ConsignmentManager";
+import PurchaseDialog from "../components/purchaseDialog/PurchaseDialog";
 const Admin = () => {
   const { getMinStockProducts, minStockProducts } = useAdminContext();
-  const { providers, getProviders } = usePurchaseContext();
+  const { getProviders, selectedProduct, setSelectedProduct } = usePurchaseContext();
 
-  const { buyingRecords, getBuyingRecords } = useBuyingRecordContext();
+  const { buyingRecords, getBuyingRecords  } = useBuyingRecordContext();
   const { authenticatedUser } = useGlobalContext();
-  const { createPurchase } = usePurchaseContext();
   const [userList, setUserList] = useState([]);
-  const [productPriceUnit, setProductPriceUnit] = useState(0);
-  const [productQuantity, setProductQuantity] = useState(0);
-  const [providerSelected, setProviderSelected] = useState(null);
-  const [orderType, setOrderType] = useState("COUNTED"); // "COUNTED", "CREDIT", "CONSIGNATION"
-  const [daysOfCredit, setDaysOfCredit] = useState(0);
   const [openPriceUnitModal, setOpenPriceUnitModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [auditLog, setAuditLog] = useState([]);
   const [activeSection, setActiveSection] = useState("stock"); // 'stock', 'audit', 'register'
   const [openSection, setOpenSection] = useState(false);
@@ -184,52 +178,6 @@ const Admin = () => {
     }
   };
 
-  const generatePurchase = (product) => {
-    //validar que esten todos los datos ademas de validar que la cantidad no sea mayor al stock máximo
-    let proceed = true;
-    if (
-      !productPriceUnit ||
-      !productQuantity ||
-      !providerSelected ||
-      !orderType
-    ) {
-      toast.error("Por favor completa todos los campos");
-      proceed = false;
-    }
-    if (orderType === "CREDIT" && daysOfCredit <= 0) {
-      toast.error("Por favor ingresa los días de crédito");
-      proceed = false;
-    }
-    if (orderType === "CREDIT" && daysOfCredit >= 200) {
-      toast.error("Los días de crédito no pueden ser mayores a 200");
-      proceed = false;
-    }
-
-    if (productQuantity > product.max_stock - product.total_quantity) {
-      toast.error(
-        "La cantidad no puede ser mayor al stock máximo del producto"
-      );
-      proceed = false;
-    }
-    if (proceed) {
-      createPurchase({
-        product: { ...product, id: product.product_id },
-        quantity: productQuantity,
-        provider: providerSelected.id,
-        price_unit: productPriceUnit,
-        purchase_date: new Date().toISOString().split("T")[0],
-        order_type: orderType, // Valor por defecto para compras desde proveedores
-        days_of_credit: orderType === "CREDIT" ? daysOfCredit : 0,
-      });
-    }
-    setOpenPriceUnitModal(false);
-    setSelectedProduct(null);
-    setProductPriceUnit(0);
-    setProductQuantity(0);
-    setProviderSelected(null);
-
-    getMinStockProducts();
-  };
 
   useEffect(() => {
     if (authenticatedUser?.kind_of_person == "client") {
@@ -370,6 +318,11 @@ const Admin = () => {
         </Box>
       </Drawer>
 
+<PurchaseDialog
+  open={openPriceUnitModal}
+  onClose={() => setOpenPriceUnitModal(false)}
+/>
+{/* 
       <Dialog
         fullWidth
         open={openPriceUnitModal}
@@ -463,7 +416,6 @@ const Admin = () => {
                 </Select>
               </FormControl>
 
-              {/* Campo condicional para días de crédito */}
               {orderType === "CREDIT" && (
                 <FieldGroup
                   onChange={(e) => {
@@ -492,7 +444,7 @@ const Admin = () => {
             </Button>
           </Box>
         </Box>
-      </Dialog>
+      </Dialog> */}
       <MiniCard className={"max-w-full flex"}>
         {authenticatedUser.is_superuser && (
           <Box

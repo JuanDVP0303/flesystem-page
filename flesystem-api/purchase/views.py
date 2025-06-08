@@ -65,6 +65,7 @@ class PurchaseViewset(viewsets.ModelViewSet):
         price_unit = request.data.get("price_unit")
         order_type = request.data.get("order_type", "COUNTED")
         days_of_credit = request.data.get("days_of_credit", 0)
+        compensation_order = request.data.get("compensation_order", None)
         today = timezone.now()
         due_date = today + timedelta(days=days_of_credit) if order_type == "CREDIT" else None
         due_date = due_date.date() if due_date else None
@@ -99,6 +100,13 @@ class PurchaseViewset(viewsets.ModelViewSet):
             credit_days=days_of_credit if order_type == "CREDIT" else None,
             due_date=due_date,
         )
+        if compensation_order:
+            try:
+                compensation_order_instance = Order.objects.get(id=compensation_order)
+                order.compensation_order = compensation_order_instance
+                order.compensation_type = request.data.get("compensation_type", "money")
+            except Order.DoesNotExist:
+                return Response({"error": "Orden de compensación no encontrada."}, status=404)
         
         log_user_action(request.user, "orden", None, f"Se ha creado la orden: #{order.id}")
         
@@ -124,6 +132,7 @@ class PurchaseViewset(viewsets.ModelViewSet):
         order_id = request.data.get("order_id")
         status = request.data.get("status")
         real_quantity = request.data.get("real_quantity")
+        compensation_type = request.data.get("compensation_type", None)
         if not order_id or not status:
             return Response(
                 {"error": "ID de orden y estado son requeridos."},
@@ -165,6 +174,11 @@ class PurchaseViewset(viewsets.ModelViewSet):
                 order.save()
         
         order.real_quantity = real_quantity
+        
+        if float(order.quantity) > float(real_quantity):
+            order.compensation_type = compensation_type
+            order.compensed = False
+        
         order.status = status
         order.save()
         log_user_action(request.user, "orden", None, f"Se han actualizado el estado de la orden de ID: {order.id} a: {order.get_status_display() }")
@@ -328,6 +342,15 @@ class PurchaseViewset(viewsets.ModelViewSet):
         y -= 30
         p.drawString(100, y, "Firma Operador: __________________________")
         y -= 30
+        p.drawString(100, y, "Observación: ______________________________________________________________________________")
+        y-=30
+        p.drawString(100, y, "_______________________________________________________________________________________")
+        y-=30
+        p.drawString(100, y, "_______________________________________________________________________________________")
+        
+        
+        y -= 30
+        
         p.drawString(100, y, f"Usuario: {request.user.email}")
         
         p.showPage()
@@ -358,6 +381,44 @@ class PurchaseViewset(viewsets.ModelViewSet):
         
         serializer = OrderSerializer(consignment_orders, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], url_path='replenish')
+    def replenish_stock(self, request):
+        order_id = request.data.get("order_id")
+        compensation_type = request.data.get("compensation_type")
+        order = Order.objects.get(id=order_id)
+        
+        if compensation_type == "money":
+            order.compensed = True
+            order.save()
+            return Response({
+                "message": "Orden compensada exitosamente.",
+            }, status=200)
+        product_order_batch = ProductBatch.objects.filter(
+            product=order.product,
+            purchase_order=order,
+        ).first()
+        if order.compensed:
+            return Response({"error": "La orden ya ha sido compensada."}, status=400)
+        replenish_quantity = request.data.get("replenish_quantity", 0)
+        if not product_order_batch:
+            return Response({"error": "No se encontró el lote de la orden de compra."}, status=404)
+        if replenish_quantity <= 0:
+            return Response({"error": "La cantidad a reabastecer debe ser mayor que cero."}, status=400)
+        
+        # Actualizar el lote
+        product_order_batch.quantity += replenish_quantity
+        product_order_batch.initial_quantity += replenish_quantity
+        product_order_batch.active =True
+        product_order_batch.save()
+        
+        order.compensed = True
+        order.save()
+        return Response({
+            "message": "Stock reabastecido exitosamente.",
+        }, status=200)
+
+    
 
 class ProviderViewset(viewsets.ModelViewSet):
     queryset = Provider.objects.all()

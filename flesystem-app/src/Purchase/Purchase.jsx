@@ -10,6 +10,7 @@ import {
   IconButton,
   InputLabel,
   MenuItem,
+  RadioGroup,
   Select,
   TextField,
   Tooltip,
@@ -32,12 +33,13 @@ import { toast } from "react-toastify";
 import ProductTable from "../Inventory/components/ProductTable";
 import { FilterButton } from "../BuyingRecords/BuyingRecords";
 import ConsignmentManager from "./ConsignmentManager";
+import ReplenishProduct from "../components/ReplenishProduct";
+// import PurchaseDialog from "../components/purchaseDialog/PurchaseDialog";
 
 const Purchase = () => {
   const { authenticatedUser } = useGlobalContext();
   const { purchasesModalType, setPurchasesModalType, getProviders, getOrders, orders } = usePurchaseContext();
   const [statusFilter, setStatusFilter] = useState('PENDING');
-  const [openConsignationManager, setOpenConsignationManager] = useState(false);
   const filteredOrders = orders.filter(order => 
     statusFilter ? order.status === statusFilter : true
   );
@@ -120,7 +122,7 @@ const Purchase = () => {
           </Box>
       <MiniCard>
         <TableGenerator
-              labels={["Producto", "Cantidad Prevista", "Cantidad Real", "Proveedor", "Tipo", "Costo Total Esperado", "Costo Total Final", "Fecha", "Acción", "Status"]}
+              labels={["Producto", "Cantidad Prevista", "Cantidad Real", "Proveedor", "Tipo", "Costo Total Esperado", "Costo Total Final", "Fecha", "Acción", "Status", "Compensada"]}
               data={filteredOrders.map(order => {
               const orderTypeMap = {
               'COUNTED': 'Contado',
@@ -139,6 +141,7 @@ const Purchase = () => {
                       "bg-red-500"
                     } w-3 h-3 rounded-full`}></Box>                  
                   ),
+                  compensable: order.status == "COMPLETED" ? order.compensed ? "SI" :  "NO" : "",
                   action: (
                     <Box sx={{
                       display: "flex",
@@ -157,7 +160,7 @@ const Purchase = () => {
                     </Box>
                   )
                 }}) || []}
-              rowFields={["product_name", "quantity", "real_quantity", "provider_name", "order_type", "total_cost", "real_total_cost","purchase_date", "action", "status"]}
+              rowFields={["product_name", "quantity", "real_quantity", "provider_name", "order_type", "total_cost", "real_total_cost","purchase_date", "action", "status", "compensable"]}
             />
       </MiniCard>
       <PurchaseModal />
@@ -195,12 +198,14 @@ const PurchaseSection = () => {
     purchase_date: "",
     invoice_number: "",
     order_type: "COUNTED", // Nuevo campo: tipo de orden
-    credit_days: 0,        // Nuevo campo: días de crédito
+    credit_days: 0,
+    compensation_type: "money", // Nuevo campo: tipo de compensación
   });
   const [providers, setProviders] = useState([]);
+  const [openReplenishProduct, setOpenReplenishProduct] = useState(false);
   const [provider, setProvider] = useState([]);
   const { searchProductDebounce,  setSearchedProducts,  } = useInventoryContext();
-  const { createPurchase, purchasesModalType, setPurchasesModalType, updateOrderStatus } = usePurchaseContext();
+  const { createPurchase, purchasesModalType, setPurchasesModalType, updateOrderStatus, setSelectedProduct,replenishProduct } = usePurchaseContext();
   const [order, setOrder] = useState(null)
   const formRef = useRef();
   const {searchedProducts, } = useInventoryContext()
@@ -227,7 +232,6 @@ const PurchaseSection = () => {
   };
 
   const handleChange = (e) => {
-    console.log("ASDASD", e.target.name, e.target.value)
     const { name, value } = e.target;
     setFormValues({
       ...formValues,
@@ -289,6 +293,7 @@ const generateShortageReport = async (orderId) => {
         purchase_date: purchasesModalType.purchase_date,
         invoice_number: purchasesModalType.invoice_number,
         real_quantity: purchasesModalType.real_quantity,
+        compensation_type: purchasesModalType.compensation_type || "money", // Asegurarse de que el tipo de compensación esté definido
         order_type: purchasesModalType.order_type || "COUNTED", // Asegurarse de que el tipo de orden esté definido
         credit_days: purchasesModalType.credit_days || 0, // Asegurarse de que los días de crédito estén definidos
       })
@@ -297,6 +302,16 @@ const generateShortageReport = async (orderId) => {
 
   return (
     <Box className="p-5">
+      {/* <PurchaseDialog
+       open={openPurchaseDialog}
+       onClose={() => setOpenPurchaseDialog(false)}
+       compensationOrder = {order}
+       /> */}
+       <ReplenishProduct
+        open={openReplenishProduct}
+        onClose={() => setOpenReplenishProduct(false)}
+        compensationOrder={order}
+        />
       <form
         ref={formRef}
         onSubmit={(e) => {
@@ -322,6 +337,18 @@ const generateShortageReport = async (orderId) => {
                         }
                       </Box> 
 
+              {
+                purchasesModalType?.quantity > purchasesModalType?.real_quantity && purchasesModalType?.status === "COMPLETED" && purchasesModalType?.order_type === "COUNTED" && (
+                  <Box sx={{ backgroundColor: 'skyblue', padding: 2, borderRadius: 2, mt:2, marginBottom: 2 }}>
+                    <Typography variant="body1" color="textPrimary">
+                      Esta compra tiene una diferencia entre la cantidad prevista y la cantidad real.
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {purchasesModalType?.compensed ? "Compensada" : "Por compensar"}  
+                    </Typography>
+                  </Box>
+                )
+              }
 
               <div className="flex flex-col flex-1">
                 <FormLabel>Proveedor</FormLabel>
@@ -454,7 +481,22 @@ const generateShortageReport = async (orderId) => {
     </Typography>
   )}
 </GridField>
-     {typeof purchasesModalType == "object" && <FieldGroup
+     {typeof purchasesModalType == "object" &&<> 
+     
+              <TextField
+                disabled
+                value={{
+                  "COUNTED": "Contado",
+                  "CREDIT": "Crédito",
+                  "CONSIGNATION": "Consignación"
+                }[formValues.order_type] || formValues.order_type}
+                name="order_type"
+                label="Tipo de orden"
+                variant="outlined"
+                fullWidth
+                sx={{ marginY: 2 }}
+              />
+     <FieldGroup
                 onChange={handleChange}
                 value={formValues.real_quantity}
                 name="real_quantity"
@@ -464,7 +506,65 @@ const generateShortageReport = async (orderId) => {
                 disabled={purchasesModalType.status != "PENDING"}
                 numeric={true}
                 placeholder="Ex:. 50.00"
-              />}
+              />
+              {/* {console.log("FORM VALUES", formValues)} */}
+
+              {formValues.order_type == "COUNTED" && formValues.real_quantity && formValues.real_quantity < formValues.quantity && (
+                <Box>
+                <FormControl>
+                  {console.log(purchasesModalType)}
+                  <FormLabel id="order-type-label">Tipo de compensasión</FormLabel>
+                 <Tooltip title="Seleccione el tipo de compensación que desea aplicar: Monetaria para reembolso, Productos para reposición" placement="top">
+                  <Select
+                    labelId="order-type-label"
+                    name="compensation_type"
+                    value={formValues.compensation_type}
+                    onChange={handleChange}
+                    disabled={purchasesModalType.status != "PENDING"}
+                  >
+                    <MenuItem value="money">Monetaria</MenuItem>
+                    <MenuItem value="product">Productos</MenuItem>
+                  </Select>
+                    </Tooltip>
+                  </FormControl>
+                  <br/>
+{console.log(purchasesModalType)}
+                  {
+                    purchasesModalType.status == "COMPLETED" && purchasesModalType.order_type == "COUNTED" && !purchasesModalType.compensed && <Button
+                    sx={{
+                      mt:4
+                    }}
+                    
+                    onClick={() => {
+                      if (purchasesModalType.compensation_type === "money") {
+                    replenishProduct(purchasesModalType?.provider, null, purchasesModalType, "money");
+                        setPurchasesModalType(null);
+                        return; 
+                      }
+                      else if(purchasesModalType.compensation_type === "product"){
+                        console.log(purchasesModalType)
+                        setSelectedProduct(purchasesModalType.product)
+                        setOpenReplenishProduct(true)
+                        // setPurchasesModalType(null);
+                      }
+                    }}
+                    variant="contained" color="success" >
+                    {
+                      purchasesModalType.compensation_type === "money"? "Marcar como reembolsada" :
+                        purchasesModalType.compensation_type === "product" ? "Reabastecer productos" : "..."
+                    }
+                  </Button>}
+                  </Box>
+              )}
+
+              </>}
+
+
+{/*
+     
+*/}
+
+
   
             {/* <div className="px-8 pt-5">
               <FieldGroup
@@ -510,11 +610,11 @@ const generateShortageReport = async (orderId) => {
                     }
 
 
-                  const response = await updateOrderStatus(order.id, "COMPLETED", formValues.real_quantity)
+                  const response = await updateOrderStatus(order.id, "COMPLETED", formValues.real_quantity, formValues.compensation_type);
                   console.log("RESPONSE", response)
                   setPurchasesModalType(null)
                     // Si es de tipo CONTADO y hay diferencia, generar reporte
-                  if (response.status == 200 && formValues.order_type != "CONSIGNATION" && formValues.real_quantity < formValues.quantity) {
+                  if (response.status == 200 && formValues.order_type != "CONSIGNATION" && formValues.order_type != "CREDIT" && formValues.real_quantity < formValues.quantity) {
                     const reportGenerated = await generateShortageReport(order.id);
                     if (!reportGenerated) {
                       return; // Si hay error, no continuar

@@ -11,6 +11,8 @@ const PurchasesProvider = ({ children }) => {
     const [provider, setProvider] = useState(null)
     const [providerProducts, setProviderProducts] = useState([])
     const [orders, setOrders] = useState([])
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    
     const {  getProducts, } = useInventoryContext();
     const formRef = useRef();
     
@@ -148,7 +150,7 @@ const PurchasesProvider = ({ children }) => {
         }
       }
     
-      const updateOrderStatus = async (orderId, status, real_quantity) => {
+      const updateOrderStatus = async (orderId, status, real_quantity, compensation_type) => {
         try {
             if (!status) {
                 toast.error("Por favor selecciona un estado");
@@ -162,10 +164,12 @@ const PurchasesProvider = ({ children }) => {
                 toast.error("La cantidad real debe ser mayor a 0");
                 return;
             }
+
           const res = await api.post(`/purchase/orders/order-status/`, {
             order_id: orderId,
             status,
-            real_quantity: real_quantity
+            real_quantity: real_quantity,
+            compensation_type: compensation_type || null
           })
           if(res.status === 200){
             toast.success("Estado de la orden actualizado con éxito")
@@ -177,6 +181,15 @@ const PurchasesProvider = ({ children }) => {
           return res
         } catch (error) {
           console.log(error)
+          if (error.response && error.response.data) {
+            const data = error.response.data;
+            for (const key in data) {
+              toast.error(`${key}: ${data[key]}`);
+              return
+            }
+          } else {
+            console.error("Error al actualizar el estado de la orden:", error);
+          }
           toast.error("Hubo un error al actualizar el estado de la orden")
         }
       }
@@ -231,6 +244,56 @@ const PurchasesProvider = ({ children }) => {
       return [];
     }
   };
+
+      const replenishProduct = async (providerSelected, replenishQuantity, compensationOrder, compensationType = "products") => {
+          if (compensationType == "products" && !replenishQuantity || !providerSelected) {
+              toast.error("Por favor, completa todos los campos.");
+              return;
+          }
+  
+          const data = {
+              order_id: compensationOrder?.id,
+              replenish_quantity: replenishQuantity,
+              compensation_type : compensationType
+          };
+  
+  
+          const res = await api.post(`/purchase/orders/replenish/`, data);
+          try{
+  
+              if(res.status === 200) {
+                  toast.success(compensationType == "products" ?"Reabastecimiento realizado con éxito" : "Orden compensada monetariamente");
+
+                  getOrders()
+              }
+              else{
+                console.log(res.data.error)
+                let text = res.data.error
+                if (!text){
+                  text = compensationType == "products" ? "Hubo un error al reabastecer el producto" : "Hubo un error al compensar la orden";
+                }
+                  toast.error(text);
+                  return;
+              }
+          }
+          catch (error) {
+              const errorData = error.response?.data;
+              if (errorData) {
+                  for (const key in errorData) {
+                      toast.error(`${key}: ${errorData[key]}`);
+                  }
+              } else {
+                  console.error("Error al reabastecer el producto:", error);
+                  toast.error("Hubo un error al reabastecer el producto");
+              }
+          }
+          
+          // Aquí deberías llamar a la función que maneja el reabastecimiento del producto
+          // Por ejemplo, createReplenishment(data);
+          console.log("Reabastecer producto:", data);
+          
+      }
+  
   
     const values = {
         purchasesModalType,
@@ -252,7 +315,9 @@ const PurchasesProvider = ({ children }) => {
         setProviderProducts,
         updateSoldQuantity,
         cancelConsignment,
-        getCreditAlerts
+        getCreditAlerts,
+        selectedProduct, setSelectedProduct,
+        replenishProduct
     }
     return (
     <purchasesContext.Provider value={values}>{children}</purchasesContext.Provider>

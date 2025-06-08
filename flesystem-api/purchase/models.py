@@ -26,6 +26,16 @@ class Order(models.Model):
         ('CREDIT', 'Crédito'),
         ('CONSIGNATION', 'consignation'),
     ]
+    compensation_type = models.CharField(
+        max_length=30,
+        choices=[
+            ('money', 'Monetario'),
+            ('product', 'Productos'),
+        ],
+        null=True,
+        blank=True
+    )
+    compensed = models.BooleanField(default=True)
     invoice_number = models.CharField(max_length=255, null=True, blank=True)
     provider = models.ForeignKey("purchase.Provider", on_delete=models.CASCADE, related_name="orders")
     created_at = models.DateTimeField(auto_now_add=True)

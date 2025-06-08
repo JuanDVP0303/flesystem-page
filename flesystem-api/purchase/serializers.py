@@ -7,6 +7,12 @@ class ProviderSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class OrderSerializer(serializers.ModelSerializer):
+    compensation_order = serializers.PrimaryKeyRelatedField(
+        queryset=Order.objects.all(), 
+        required=False, 
+        allow_null=True
+    )
+    
     class Meta:
         model = Order
         fields = '__all__'

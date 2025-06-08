@@ -37,8 +37,13 @@ class ProductSerializer(serializers.ModelSerializer):
         required=False
     )
     image = serializers.SerializerMethodField()
+    product_image = serializers.SerializerMethodField()
 
     def get_image(self, obj):
+        if obj.product_image:
+            return obj.product_image.url
+        return None
+    def get_product_image(self, obj):
         if obj.product_image:
             return obj.product_image.url
         return None

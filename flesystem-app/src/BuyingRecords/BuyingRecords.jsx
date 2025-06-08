@@ -481,7 +481,7 @@ s
                     field={"payment_proof"}
                     // label={"Comprobante"}
                     title = "Comprobante de pago"
-                    value={import.meta.VITE_API_URL + newPayment.proof}
+                    value={typeof newPayment.proof == "string" ? import.meta.VITE_API_URL + newPayment.proof : newPayment.proof}
                     width={100}
                     height={100}
                   />
