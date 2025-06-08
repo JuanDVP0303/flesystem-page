@@ -94,6 +94,8 @@ class ProductsViewset(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         product = serializer.save()
+        
+        product.product_image.save(content=request.data["product_image"], name=product.name+ request.data["product_image"].name.split(".")[-1], save=True)
         providers = request.data.getlist('providers[]')  # Obtener lista de IDs
         product.providers.set(providers)
         
