@@ -535,6 +535,24 @@ const Admin = () => {
         )}
         {activeSection == "stock" && (
           <>
+          {authenticatedUser.kind_of_person == "operator" && (
+            <Box sx={{width:"300px"}}>
+            <Button
+            fullWidth
+            sx={{ my: 2 }}
+            variant="contained"
+            color="secondary"
+            startIcon={<DownloadIcon />}
+            onClick={() =>
+              downloadManual(
+                authenticatedUser.is_superuser ? "admin" : "operator"
+              )
+            }
+          >
+            Descargar Manual
+          </Button>
+            </Box>
+          )}
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
               <Box
                 sx={{

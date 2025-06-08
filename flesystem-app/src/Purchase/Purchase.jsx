@@ -609,6 +609,11 @@ const generateShortageReport = async (orderId) => {
                       return
                     }
 
+                    if(!Number.isInteger(formValues.real_quantity)){
+                      toast.error("La cantidad real debe ser un número entero");
+                      return
+                    }
+
 
                   const response = await updateOrderStatus(order.id, "COMPLETED", formValues.real_quantity, formValues.compensation_type);
                   console.log("RESPONSE", response)
