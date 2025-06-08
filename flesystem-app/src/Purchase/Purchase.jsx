@@ -320,11 +320,11 @@ const generateShortageReport = async (orderId) => {
         }}
       >
         <Box sx={{ width: "100%" }}>
-        {typeof purchasesModalType === "object" && 
+        {/* {typeof purchasesModalType === "object" && 
           purchasesModalType?.order_type === "CONSIGNATION" && 
           purchasesModalType?.status === "COMPLETED" && (
           <ConsignmentManager order={purchasesModalType} />
-        )}
+        )} */}
         <Box className={`${
                       purchasesModalType?.status === "COMPLETED" ? "bg-green-500" :
                       purchasesModalType?.status === "PENDING" ?  "bg-yellow-500":
