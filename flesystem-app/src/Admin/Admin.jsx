@@ -105,7 +105,7 @@ const Admin = () => {
 
   useEffect(() => {
     if (selectedProduct) {
-      if (selectedProduct.providers.length == 0) {
+      if (selectedProduct?.providers?.length == 0) {
         toast.error(
           "El producto no tiene proveedores asociados, editalo en el inventario y asignale un proveedor"
         );
@@ -740,7 +740,7 @@ const AuditTable = ({ auditLogs }) => {
 
   const emptyRows =
     page > 0
-      ? Math.max(0, (1 + page) * rowsPerPage - filteredAuditLogs.length)
+      ? Math.max(0, (1 + page) * rowsPerPage - filteredAuditLogs?.length)
       : 0;
 
   return (
@@ -833,7 +833,7 @@ const AuditTable = ({ auditLogs }) => {
       <TablePagination
         rowsPerPageOptions={[5, 10, 25]}
         component="div"
-        count={filteredAuditLogs.length}
+        count={filteredAuditLogs?.length}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={handleChangePage}
@@ -960,7 +960,7 @@ const UsersTable = ({ users }) => {
       <TablePagination
         rowsPerPageOptions={[5, 10, 25]}
         component="div"
-        count={users.length}
+        count={users?.length}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={handleChangePage}
