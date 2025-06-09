@@ -721,6 +721,7 @@ const ProviderSection = () => {
 const ProvidersView = ({ state }) => {
   const { createProvider, getProvider, editProvider, provider, setProvider,formRef, providerProducts, setProviderProducts, getProvidersProducts } =
     usePurchaseContext();
+  const [errors, setErrors] = useState({});
 
     const [showProvidersProduct, setShowProvidersProduct] = useState(false)
 
@@ -728,27 +729,130 @@ const ProvidersView = ({ state }) => {
     return () => setProvider(null);
   }, []);
 
+  const validateEmail = (email) => {
+    // Regex simple para validar email
+    const re =
+      /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@(([^<>()[\]\\.,;:\s@"]+\.)+[^<>()[\]\\.,;:\s@"]{2,})$/i;
+    return re.test(String(email).toLowerCase());
+  };
+
+    const validPhonePrefixes = [
+    "0412",
+    "0414",
+    "0416",
+    "0424",
+    "0426",
+  ]; // Los códigos válidos venezolanos (puedes ajustar si hay más)
+
+  
+  const validatePhone = (phone) => {
+    // El teléfono debe tener formato #### #######
+    // Extraemos solo números para validar
+    const numbersOnly = phone.replace(/\s/g, "");
+    if (numbersOnly.length !== 11) return false;
+
+    const prefix = numbersOnly.slice(0, 4);
+    if (!validPhonePrefixes.includes(prefix)) return false;
+
+    // Verificar que el resto sean números
+    const rest = numbersOnly.slice(4);
+    return /^\d{7}$/.test(rest);
+  };
+
+  const validateRif = (rif) => {
+    // Solo números y longitud mínima (puedes ajustar longitud)
+    return /^[0-9]+$/.test(rif) && rif.length >= 6 && rif.length <= 12;
+  };
+
+
+  const validateDocument = (doc) => {
+    // Solo números y longitud razonable
+    return /^[0-9]+$/.test(doc) && doc.length >= 6 && doc.length <= 12;
+  };
+  
+  // Validación completa del formulario
+  const validateForm = (providerData) => {
+    const newErrors = {};
+
+    if (!providerData.name || providerData.name.trim() === "") {
+      newErrors.name = "El nombre es obligatorio";
+    }
+
+    if (!providerData.email || providerData.email.trim() === "") {
+      newErrors.email = "El correo electrónico es obligatorio";
+    } else if (!validateEmail(providerData.email)) {
+      newErrors.email = "El correo electrónico no es válido";
+    }
+
+    if (!providerData.phone || providerData.phone.trim() === "") {
+      newErrors.phone = "El teléfono es obligatorio";
+    } else if (!validatePhone(providerData.phone)) {
+      newErrors.phone =
+        "El teléfono debe tener un código válido y formato 0424 9999999";
+    }
+
+    if (!providerData.address || providerData.address.trim() === "") {
+      newErrors.address = "La dirección es obligatoria";
+    }
+
+    if (!providerData.rif || providerData.rif.trim() === "") {
+      newErrors.rif = "El RIF es obligatorio y en un formato númerico válido";
+    } else if (!validateRif(providerData.rif)) {
+      newErrors.rif = "El RIF debe contener solo números y ser válido";
+    }
+
+    if (!providerData.document || providerData.document.trim() === "") {
+      newErrors.document = "La cédula es obligatoria";
+    } else if (!validateDocument(providerData.document.replace("J", "").replace("V", "").replace("-", ""))) {
+      console.log(providerData)
+      newErrors.document = "La cédula debe contener solo números y ser válida";
+    }
+
+    if (
+      !providerData.type_of_document ||
+      (providerData.type_of_document !== "V" && providerData.type_of_document !== "J")
+    ) {
+      newErrors.type_of_document = "Seleccione un tipo de documento válido";
+    }
+
+     toast.error(newErrors[Object.keys(newErrors)[0]]) 
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+
   const onSubmit = (e) => {
+    console.log("ADSADA", errors)
     e.preventDefault();
     const formData = new FormData(formRef.current);
     const providerData = {};
     formData.forEach((value, key) => {
       providerData[key] = value;
     });
+    console.log("ADSADA")
+
+
     if (provider) {
       providerData.id = state;
     }
+
+    // Limpiar valores numéricos
     providerData["document"] = providerData["document"].replace(/[^0-9]/g, ""); // Solo números
+    providerData["rif"] = providerData["rif"].replace(/[^0-9]/g, "");
+    providerData["phone"] = providerData["phone"].replace(/[^0-9]/g, "");
     providerData["document"] = `${providerData["type_of_document"]}-${providerData["document"]}`;
-    // console.log("PROVIDER DATA", providerData);
-    
-    if (state == "add") {
+
+    // Validar antes de enviar
+    if (!validateForm(providerData)) {
+      return;
+    }
+
+    if (state === "add") {
       createProvider(providerData);
     } else {
       editProvider(providerData);
     }
   };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProvider((prev) => {
@@ -757,7 +861,80 @@ const ProvidersView = ({ state }) => {
         [name]: value,
       };
     });
+
+    // Validar campo específico al cambiar
+    let fieldError = null;
+    switch (name) {
+      case "email":
+        if (value.trim() === "") {
+          fieldError = "El correo electrónico es obligatorio";
+        } else if (!validateEmail(value)) {
+          fieldError = "El correo electrónico no es válido";
+        }
+        break;
+      case "phone":
+        // Formatear teléfono con espacio después de 4 dígitos
+        let formattedValue = value.replace(/[^0-9]/g, "");
+        if (formattedValue.length > 11) {
+          formattedValue = formattedValue.slice(0, 11);
+        }
+        if (formattedValue.length > 4) {
+          formattedValue = `${formattedValue.slice(0, 4)} ${formattedValue.slice(4)}`;
+        }
+        setProvider((prev) => ({ ...prev, phone: formattedValue }));
+
+        if (formattedValue.trim() === "") {
+          fieldError = "El teléfono es obligatorio";
+        } else if (!validatePhone(formattedValue)) {
+          fieldError =
+            "El teléfono debe tener un código válido y formato 0424 9999999";
+        }
+        break;
+      case "rif":
+        const numericRif = value.replace(/[^0-9]/g, "");
+        setProvider((prev) => ({ ...prev, rif: numericRif }));
+
+        if (numericRif.trim() === "") {
+          fieldError = "El RIF es obligatorio y en un formato númerico válido";
+        } else if (!validateRif(numericRif)) {
+          fieldError = "El RIF debe contener solo números y ser válido";
+        }
+        break;
+      case "document":
+        const numericDoc = value.replace(/[^0-9]/g, "");
+        setProvider((prev) => ({ ...prev, document: numericDoc }));
+
+        if (numericDoc.trim() === "") {
+          fieldError = "La cédula es obligatoria";
+        } else if (!validateDocument(numericDoc)) {
+          fieldError = "La cédula debe contener solo números y ser válida";
+        }
+        break;
+      case "type_of_document":
+        if (value !== "V" && value !== "J") {
+          fieldError = "Seleccione un tipo de documento válido";
+        }
+        break;
+      case "name":
+        if (value.trim() === "") {
+          fieldError = "El nombre es obligatorio";
+        }
+        break;
+      case "address":
+        if (value.trim() === "") {
+          fieldError = "La dirección es obligatoria";
+        }
+        break;
+      default:
+        break;
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: fieldError,
+    }));
   };
+
 
   const handleExportCompletedOrders = async () => {
     try {
@@ -813,7 +990,7 @@ const ProvidersView = ({ state }) => {
           </Card>
           </ModalComponent>
           <div className="mb-6 flex gap-4">
-{provider && <>        <GenericButton outlined onClick={() => setShowProvidersProduct(true)} label={"Productos"}>
+{state != "add" && <>        <GenericButton outlined onClick={() => setShowProvidersProduct(true)} label={"Productos"}>
         </GenericButton>
         <GenericButton onClick={handleExportCompletedOrders} label={"Compras Completadas"} /></>}
           </div>

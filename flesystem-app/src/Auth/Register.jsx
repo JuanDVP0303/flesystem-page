@@ -11,7 +11,7 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormLabel from '@mui/material/FormLabel';
-const fieldsObj = {
+export const fieldsObj = {
   email: 'Email',
   rif: 'RIF',
   phone: 'Teléfono',

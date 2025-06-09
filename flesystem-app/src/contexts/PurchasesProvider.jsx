@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 import { api } from "../utils/api";
 import { toast } from "react-toastify";
 import { useInventoryContext } from "../hooks/useInventoryContext";
+import { fieldsObj } from "../Auth/Register";
 
 const PurchasesProvider = ({ children }) => {
     const [purchasesModalType, setPurchasesModalType] = useState(null)
@@ -24,9 +25,10 @@ const PurchasesProvider = ({ children }) => {
                 toast.success("Proveedor creado con éxito")
             }
             else{
-                const data = res.response.data
+              console.log(res)
+                const data = res.data
                 for (const key in data) {
-                    toast.error(`${key}: ${data[key]}`)
+                    toast.error(`${fieldsObj[key] ?? key}: ${data[key][0]?.replace("provider", "proveedor").replace(key, fieldsObj[key] ?? key)}`)
                 }
             }
         }).catch(err => {

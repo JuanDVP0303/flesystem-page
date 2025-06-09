@@ -435,7 +435,10 @@ class ProviderViewset(viewsets.ModelViewSet):
         provider = super().create(request, *args, **kwargs)
         provider = Provider.objects.get(id=provider.data['id'])
         log_user_action(request.user, "crear proveedor", None, f"Se ha creado el proveedor {provider.id}")
-        return provider
+        serializer = ProviderSerializer(provider)
+        return Response(serializer.data, status=201)
+    
+    
     def update(self, request, *args, **kwargs):
         provider = self.get_object()
         log_user_action(request.user, "actualizar proveedor", None, f"Se ha actualizado el proveedor {provider.id}")
