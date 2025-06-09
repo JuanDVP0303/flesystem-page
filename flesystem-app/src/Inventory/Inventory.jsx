@@ -336,19 +336,20 @@ const IncomeInventory = () => {
             toast.error("Debes subir una imagen del producto")
             return
           }
-          if(formValues.sell_price < 0){
+          if(Number(formValues.sell_price) < 0){
             toast.error("El precio de venta no puede ser menor a 0")
             return
           }
-          if(formValues.min_stock < 0){
+          if(Number(formValues.min_stock) < 0){
             toast.error("El stock mínimo no puede ser menor a 0")
             return
           }
-          if(formValues.max_stock < 0){
+          if(Number(formValues.max_stock) < 0){
             toast.error("El stock máximo no puede ser menor a 0")
             return
           }
-          if(formValues.min_stock > formValues.max_stock){
+          if(Number(formValues.min_stock) > Number(formValues.max_stock)){
+            console.log("VALIDANDO ACA", formValues)
             toast.error("El stock mínimo no puede ser mayor al stock máximo")
             return
           }
@@ -548,9 +549,12 @@ const OutcomeInventory = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    let realValue = value
+
     const new_data  = {
       ...formValues,
-      [name]: value,
+      [name]: realValue,
     }
     if(name == "product"){
       const prevLocation = []

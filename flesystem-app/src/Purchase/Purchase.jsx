@@ -728,7 +728,6 @@ const ProvidersView = ({ state }) => {
     return () => setProvider(null);
   }, []);
 
-
   const onSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(formRef.current);
@@ -933,7 +932,7 @@ const ProvidersView = ({ state }) => {
           {/* Botón para enviar el formulario */}
           <Box className="flex justify-center my-4">
             <GenericButton
-              label={provider ? "Editar proveedor" : "Agregar proveedor"}
+              label={state !== "add" ? "Editar proveedor" : "Agregar proveedor"}
               type="submit"
             />
           </Box>
