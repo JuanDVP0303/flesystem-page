@@ -173,11 +173,11 @@ class PurchaseViewset(viewsets.ModelViewSet):
                 order.sold_quantity = 0
                 order.save()
         
+            if float(order.quantity) > float(real_quantity):
+                order.compensation_type = compensation_type
+                order.compensed = False
+            
         order.real_quantity = real_quantity
-        
-        if float(order.quantity) > float(real_quantity):
-            order.compensation_type = compensation_type
-            order.compensed = False
         
         order.status = status
         order.save()
