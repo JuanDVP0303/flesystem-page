@@ -1,0 +1,34 @@
+<div class="header">
+    <h1>REPORTE DE CONSIGNACIÓN COMPLETADA</h1>
+</div>
+
+<div class="payment-details">
+    <div class="detail-row">
+        <div class="detail-label">Número de Orden:</div>
+        <div>#{{ order.id }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Producto:</div>
+        <div>{{ order.product_name }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Proveedor:</div>
+        <div>{{ order.provider_name }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Cantidad Consignada:</div>
+        <div>{{ order.real_quantity }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Cantidad Vendida:</div>
+        <div>{{ order.sold_quantity }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Total a Pagar:</div>
+        <div>Bs. {{ order.total_to_pay|floatformat:2 }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Fecha de Liquidación:</div>
+        <div>{{ now|date:"d/m/Y" }}</div>
+    </div>
+</div>

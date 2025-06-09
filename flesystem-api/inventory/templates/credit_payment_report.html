@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Comprobante de Pago</title>
+    <style>
+        /* Mantener los estilos del ejemplo anterior y añadir específicos */
+        .payment-details {
+            margin: 30px auto;
+            width: 80%;
+            border: 1px solid #ddd;
+            padding: 20px;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .detail-label {
+            font-weight: bold;
+            width: 40%;
+        }
+        .signature-section {
+            margin-top: 50px;
+            border-top: 1px solid #000;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-container">
+        <div class="company-info">
+            <h2>{{ company.name }}</h2>
+            <p>{{ company.address }}</p>
+            <p>RIF: {{ company.rif }}</p>
+            <p>Teléfono: {{ company.phone }}</p>
+        </div>
+        <div class="report-info">
+            <p><strong>Fecha:</strong> {{ now|date:"d/m/Y" }}</p>
+            <p><strong>Hora:</strong> {{ now|time:"H:i a" }}</p>
+        </div>
+    </div>
+    
+    <div class="header">
+        <h1>REPORTE DE PAGO DE CRÉDITO</h1>
+    </div>
+
+    <div class="payment-details">
+        <div class="detail-row">
+            <div class="detail-label">Número de Orden: #{{ order.id }}</div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-label">Producto: {{ order.product_name }}</div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-label">Proveedor:{{ order.provider__name }}</div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-label">Monto Pagado: Bs. {{ order.total_cost|floatformat:2 }}</div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-label">Fecha de Pago: {{ order.paid_date }}</div>
+        </div>
+    </div>
+
+    <div class="signature-section">
+        <p>Firma del Responsable: _________________________</p>
+        <p>Nombre: ______________________________________</p>
+        <p>C.I.: _________________________________________</p>
+    </div>
+
+    <div class="footer">
+        <p>Este documento es un comprobante de pago oficial de {{ company.name }}</p>
+    </div>
+</body>
+</html>
