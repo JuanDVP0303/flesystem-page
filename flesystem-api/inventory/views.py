@@ -548,6 +548,34 @@ class ProductsViewset(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
 
+    @action(detail=False, methods=['get'], url_path='export-credit-product', url_name='export-credit-product')
+    def export_credit_product(self, request, *args, **kwargs):
+        from .services import generate_credit_product
+        order_id = request.query_params.get("order_id")
+        if not order_id:
+            return Response({"detail": "El ID de la orden es requerido."}, status=400)
+        try:
+            response = generate_credit_product(request, order_id)
+            return response
+        except Exception as e:
+            return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
+        
+        
+    @action(detail=False, methods=['get'], url_path='export-consigment-product', url_name='export-consigment-product')
+    def export_consignment_product(self, request, *args, **kwargs):
+        from .services import generate_consignment_report
+        order_id = request.query_params.get("order_id")
+        if not order_id:
+            return Response({"detail": "El ID de la orden es requerido."}, status=400)
+        try:
+            response = generate_consignment_report(request, order_id)
+            return response
+        except Exception as e:
+            return Response({"detail": f"Error al generar el reporte: {str(e)}"}, status=500)
+        
+        
+        
+        
 class MovementsViewset(viewsets.ModelViewSet):
     queryset = Movement.objects.all()
     serializer_class = MovementSerializer
@@ -781,3 +809,4 @@ class InventoryReportsViewset(viewsets.ViewSet):
             
             
             
+

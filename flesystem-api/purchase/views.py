@@ -241,7 +241,8 @@ class PurchaseViewset(viewsets.ModelViewSet):
         """Cancelar consignación y devolver productos no vendidos"""
         order = Order.objects.get(id=id)
         unsold_quantity = order.quantity - order.sold_quantity
-        
+        print("REQUEST DATA", request.data)
+        cancel_reason = request.data.get('cancel_reason', 'No especificado')
         try:
             # Obtener el batch de consignación asociado
             batch = ProductBatch.objects.get(consignment_order=order)
@@ -269,7 +270,7 @@ class PurchaseViewset(viewsets.ModelViewSet):
                     quantity=unsold_quantity,
                     description=f"Devolución consignación cancelada (Orden #{order.id})"
                 )
-        
+        order.cancelled_reason = cancel_reason
         order.consignment_status = 'CANCELLED'
         order.save()
         
@@ -366,6 +367,8 @@ class PurchaseViewset(viewsets.ModelViewSet):
         try:
             order = Order.objects.get(id=id)
             order.credit_paid = True
+            today = timezone.now()
+            order.paid_date = today.date()  # Guardar la fecha de pago
             order.save()
             log_user_action(request.user, "marcar orden como pagada", None, f"Se ha marcado la orden {order.id} como pagada")
             return Response({"message": "Orden marcada como pagada."}, status=200)

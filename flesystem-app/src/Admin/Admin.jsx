@@ -1011,6 +1011,25 @@ const CreditAlertsTable = () => {
     fetchAlerts();
   }, []);
 
+  const downloadCreditReport = async (orderId) => {
+    try {
+      const response = await api.get(
+        `/inventory/products/export-credit-product/?order_id=${orderId}`,
+        { responseType: "blob" }
+      );
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const format_file = "pdf";
+            a.download = `reporte_crédito_orden_${orderId}.${format_file}`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(`Error al descargar el reporte: ${error.message}`);
+    }
+  }
+
   return (
     <>
       {/* Zona de filtrado por pagada y no pagada */}
@@ -1061,19 +1080,20 @@ const CreditAlertsTable = () => {
                 <TableCell>
                   <Box
                     sx={{
-                      color:
+                      color:alert.credit_paid ? "success.main" :
                         alert.days_remaining <= 1
                           ? "error.main"
                           : "warning.main",
                       fontWeight: "bold",
                     }}
                   >
-                    {alert.days_remaining}
+                    {alert.credit_paid ? "Pago" : alert.days_remaining}
                   </Box>
                 </TableCell>
                 <TableCell>
                   <Box
                     sx={{
+                      my: 1,
                       color: !alert.credit_paid
                         ? "warning.main"
                         : "success.main",
@@ -1084,8 +1104,13 @@ const CreditAlertsTable = () => {
                   </Box>
                 </TableCell>
                 <TableCell>
+                  <Box sx={{
+                    display:"flex",
+                    flexDirection:"column",
+                  }}>
                   <Button
                     variant="contained"
+                    size="small"
                     color="primary"
                     disabled={alert.credit_paid}
                     onClick={() => {
@@ -1113,6 +1138,19 @@ const CreditAlertsTable = () => {
                   >
                     Marcar como pagada
                   </Button>
+                    {alert.credit_paid && (
+                      <Button
+                      sx={{my:2}}
+                        variant="contained"
+                        color="success"
+                    size="small"
+                        
+                        onClick={() => downloadCreditReport(alert.id)}
+                      >
+                        Descargar Reporte
+                      </Button>
+                    )}
+                    </Box>
                 </TableCell>
               </TableRow>
             ))}

@@ -5,7 +5,8 @@ import {
   Paper, Button, Typography, Box, 
   Grid,
   TextField,
-  MenuItem
+  MenuItem,
+  Dialog
 } from '@mui/material';
 import { api } from '../utils/api';
 import { toast } from 'react-toastify';
@@ -37,9 +38,11 @@ const ConsignmentManagerDialog = () => {
     }
   };
 
-  const handleCancelConsignment = async (orderId) => {
+  const handleCancelConsignment = async (orderId, cancelReason) => {
     try {
-      const response = await api.post(`/purchase/orders/${orderId}/cancel-consignment/`);
+      const response = await api.post(`/purchase/orders/${orderId}/cancel-consignment/`,{
+        cancel_reason: cancelReason || "No especificado",
+      });
       toast.success("Consignación cancelada");
       fetchConsignments();
       setSelectedConsignment(null);
@@ -138,13 +141,73 @@ const ConsignmentManagerDialog = () => {
 };
 
 const ConsignmentDetails = ({ consignment, onBack, onCancel }) => {
+  const [openCancelReasonDialog, setOpenCancelReasonDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const remaining = consignment.real_quantity - consignment.sold_quantity;
-  
+  const downloadConsignmentReport = async (id) => {
+    try {
+      const response = await api.get(
+        `/inventory/products/export-consigment-product/?order_id=${id}`,
+        { responseType: "blob" }
+      );
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const format_file = "pdf";
+            a.download = `reporte_crédito_orden_${id}.${format_file}`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(`Error al descargar el reporte: ${error.message}`);
+    }
+  }
   return (
     <Box>
       <Button onClick={onBack} variant="outlined" sx={{ mb: 2 }}>
         &larr; Volver
       </Button>
+      <Dialog
+        open={openCancelReasonDialog}
+        onClose={() => setOpenCancelReasonDialog(false)}
+        aria-labelledby="cancel-reason-dialog-title"
+        aria-describedby="cancel-reason-dialog-description"
+      >
+        <Box p={3}>
+          <Typography id="cancel-reason-dialog-title" variant="h6">
+            Cancelar Consignación #{consignment.id}
+          </Typography>
+          <TextField
+            id="cancel-reason"
+            label="Razón de cancelación"
+            variant="outlined"
+            fullWidth
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          <Box mt={2} display="flex" justifyContent="space-between">
+            <Button
+              variant="outlined"
+              onClick={() => setOpenCancelReasonDialog(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+
+              variant="contained"
+              color="error"
+              onClick={() => {
+                onCancel(consignment.id, cancelReason);
+                setOpenCancelReasonDialog(false);
+                setCancelReason("");
+              }}
+            >
+              Confirmar Cancelación
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
       
       <Typography variant="h6" gutterBottom>
         Detalles de Consignación #{consignment.id}
@@ -177,6 +240,15 @@ const ConsignmentDetails = ({ consignment, onBack, onCancel }) => {
         </Grid>
       </Box>
       
+      {consignment.consignment_status === 'COMPLETED' || consignment.consignment_status === 'CANCELLED'  && (
+        <Button
+          variant="contained"
+          color="success"
+          onClick={() => downloadConsignmentReport(consignment.id)}
+        >
+          Descargar Reporte
+        </Button>
+      )}
       <Box mb={3}>
         <Typography variant="body1">
           <strong>Estado:</strong> {CONSIGNMENT_STATUS[consignment.consignment_status]}
@@ -192,7 +264,7 @@ const ConsignmentDetails = ({ consignment, onBack, onCancel }) => {
         <Button 
           variant="contained" 
           color="error"
-          onClick={() => onCancel(consignment.id)}
+          onClick={() => setOpenCancelReasonDialog(true)}
         >
           Cancelar Consignación
         </Button>
@@ -206,6 +278,9 @@ const ConsignmentDetails = ({ consignment, onBack, onCancel }) => {
           </Typography>
           <Typography>
             Productos a devolver: {remaining}
+          </Typography>
+          <Typography>
+            Razón: {consignment.cancelled_reason || "No especificada"}
           </Typography>
         </Box>
       )}

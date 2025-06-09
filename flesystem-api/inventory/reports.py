@@ -337,25 +337,18 @@ def generate_pdf_response(data, filename):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
 
-    # Cargar el template HTML
-    template = get_template('sales_reports.html')  # Asegúrate de que el nombre del template sea correcto
-
-    # Crear el contexto con los datos
+    template = get_template('sales_reports.html')  
     context = {
         'data': data,
         'now': datetime.datetime.now(),
     }
 
-    # Renderizar el template con el contexto
     html = template.render(context)
 
-    # Crear el buffer para el PDF
     buffer = BytesIO()
 
-    # Generar el PDF usando xhtml2pdf
     pdf_status = pisa.CreatePDF(html, dest=buffer)
 
-    # Si hay errores, devuelve una respuesta de error
     if not pdf_status.err:
         # Preparar la respuesta HTTP con el PDF
         pdf = buffer.getvalue()
