@@ -240,7 +240,7 @@ const ConsignmentDetails = ({ consignment, onBack, onCancel }) => {
         </Grid>
       </Box>
       
-      {consignment.consignment_status === 'COMPLETED' || consignment.consignment_status === 'CANCELLED'  && (
+      {consignment.consignment_status !== 'PENDING'&& (
         <Button
           variant="contained"
           color="success"
