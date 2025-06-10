@@ -73,19 +73,31 @@ const OperatorDashboard = () => {
       return;
     }
 
+    //Validar que la referencia este entre 5 a 20 caracteres
+    if (newPayment.reference && (newPayment.reference.length < 5 || newPayment.reference.length > 20)) {
+      toast.error("La referencia debe tener entre 5 y 20 caracteres");
+      return;
+    }
+
     //Validar que la referencia no sea igual a otra anterior
     if (newPayment.reference && paymentDetails.some(payment => payment.reference === newPayment.reference)) {
       toast.error("Ya existe un pago con esa referencia");
       return;
     }
+
+    // 
+
+    setNewPayment({});
+    document.getElementById("amount").value = '';
+    document.getElementById("payment_method_select").value = '';
+    
     setPaymentDetails([...paymentDetails, {
       ...newPayment,
       id: Date.now() // ID temporal para React
     }]);
     
-    setNewPayment({});
   };
-
+console.log(newPayment)
   const handleRemovePayment = (index) => {
     const newDetails = [...paymentDetails];
     newDetails.splice(index, 1);
@@ -169,6 +181,17 @@ const OperatorDashboard = () => {
         toast.error(`El total pagado (Bs.${totalAmount.toFixed(2)}) no cubre el costo del pedido (Bs.${selectedOrder.total_cost.toFixed(2)})`);
         return;
       }
+
+      //Validar que la referencia tenga un maximo de 20 caracteres
+      paymentData.forEach(payment => {
+        if (payment.reference && payment.reference.length > 20) {
+          toast.error("La referencia no puede tener más de 20 caracteres");
+          return;}
+        if (payment.reference && paymentData.filter(p => p.reference === payment.reference).length > 1) {
+          toast.error("Ya existe un pago con esa referencia");
+          return
+        }
+      });
 
       const response = await updateOrderStatus(orderId, newStatus, paymentData);
       console.log("Response", response);
@@ -319,23 +342,34 @@ const OperatorDashboard = () => {
                   <TableRow>
                     <TableCell>Método</TableCell>
                     <TableCell>Monto</TableCell>
-                    <TableCell>Referencia</TableCell>
-                    <TableCell>{
-                      selectedOrder?.status === 'PENDING' ? 'Acciones' : 'Imagen'
-                    }</TableCell>
+               {paymentDetails.find(payment => ['transfer', 'movil_pay'].includes(payment.method)) && <TableCell>Referencia</TableCell>}
+                    {selectedOrder?.status === 'PENDING'  ? <TableCell>
+                      Acciones
+                    </TableCell>
+                  : <TableCell>
+                {
+                paymentDetails.find(payment => ['transfer', 'movil_pay'].includes(payment.method)) && 
+                      "Imagen"
+                  }
+                  
+                  </TableCell>
+                  }
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   
-                  {paymentDetails.map((payment, index) => (
-                    <TableRow key={payment.id || index}>
+                  {paymentDetails.map((payment, index) => {
+                    const hasSomeDigitalPayment = paymentDetails.some(payment => ['transfer', 'movil_pay'].includes(payment.method));
+                    return <TableRow key={payment.id || index}>
                       <TableCell>
                         {payment.method === 'effective' && 'Efectivo'}
                         {payment.method === 'transfer' && 'Transferencia'}
                         {payment.method === 'movil_pay' && 'Pago Móvil'}
                       </TableCell>
                       <TableCell>Bs.{payment.amount}</TableCell>
+                     {hasSomeDigitalPayment && 
                       <TableCell>{payment.reference}</TableCell>
+                     }
                       <TableCell>
                         {selectedOrder?.status === 'PENDING' && (
                           <Button 
@@ -378,7 +412,7 @@ s
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -424,9 +458,11 @@ s
                   <InputLabel>Método de pago</InputLabel>
                   {console.log("New Payment", newPayment)}
                   <Select
-                    value={newPayment.method}
+                  id="payment_method_select"
+                    value={newPayment.method || null}
                     onChange={(e) => setNewPayment({...newPayment, method: e.target.value})}
                     label="Método de pago"
+
                   >
                     {/* Mostrar efectivo, pago movil y transferencia pero una sola ves por metodo, osea que no se pueda elegir el mismo metodo dos veces en un mismo pedido */}
 
@@ -444,9 +480,10 @@ s
               <Grid item xs={12} sm={3} sx={{mt:1}}>
                 <TextField
                   label="Monto"
+                  id="amount"
                   type="number"
                   fullWidth
-                  value={newPayment.amount}
+                  value={newPayment.amount || null}
                   onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})}
                   inputProps={{ min: 0.01, max: remaining.toFixed(2), step: newPayment.method !== 'effective' ? 0.01 : 1 }}
                 />

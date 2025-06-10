@@ -408,6 +408,17 @@ class PurchaseViewset(viewsets.ModelViewSet):
             return Response({"error": "No se encontró el lote de la orden de compra."}, status=404)
         if replenish_quantity <= 0:
             return Response({"error": "La cantidad a reabastecer debe ser mayor que cero."}, status=400)
+        product = product_order_batch.product
+        global_quantity = ProductBatch.objects.filter(product=product).aggregate(Sum('quantity'))['quantity__sum']
+        
+        #Validar que el global quantity mas el replenish quantity no supere el max stock del producto
+        if global_quantity is None:
+            global_quantity = 0
+        if float(global_quantity) + float(replenish_quantity) > float(product.max_stock):
+            return Response(
+                {"error": "La cantidad reabastecida supera el stock máximo permitido."},
+                status=400,
+            )
         
         # Actualizar el lote
         product_order_batch.quantity += replenish_quantity

@@ -155,7 +155,7 @@ const ConsignmentDetails = ({ consignment, onBack, onCancel }) => {
             const a = document.createElement('a');
             a.href = url;
             const format_file = "pdf";
-            a.download = `reporte_crédito_orden_${id}.${format_file}`;
+            a.download = `reporte_consignación_orden_${id}.${format_file}`;
             a.click();
             window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -239,17 +239,20 @@ const ConsignmentDetails = ({ consignment, onBack, onCancel }) => {
           </Grid>
         </Grid>
       </Box>
-      
-      {consignment.consignment_status !== 'PENDING'&& (
-        <Button
+
+      <Box mb={3}>
+        
+      {consignment.consignment_status != 'PENDING' && consignment.consignment_status != "PARTIAL" && (
+        <>
+        <Button sx={{my:1}}
           variant="contained"
           color="success"
           onClick={() => downloadConsignmentReport(consignment.id)}
         >
           Descargar Reporte
         </Button>
+        </>
       )}
-      <Box mb={3}>
         <Typography variant="body1">
           <strong>Estado:</strong> {CONSIGNMENT_STATUS[consignment.consignment_status]}
         </Typography>

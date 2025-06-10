@@ -40,7 +40,8 @@ def generate_credit_product(request, order_id):
     # Detalles de la orden
     order_data = [
         ["Número de Orden:", f"#{order.id}"],
-        ["Fecha de Pago:", timezone.now().strftime("%d/%m/%Y")],
+        ["Fecha de Pago Acordada:", order.due_date.strftime("%d/%m/%Y")],
+        ["Fecha de Pago Pagada:", order.paid_date.strftime("%d/%m/%Y")],
         ["Proveedor:", order.provider.name],
         ["Producto:", order.product.name],
         ["Monto Pagado:", f"Bs. {float(order.real_quantity * order.price_unit):.2f}"],
@@ -115,17 +116,17 @@ def generate_consignment_report(request, order_id):
     # Detalles de la consignación
     consignment_data = [
         ["Número de Orden:", f"#{order.id}"],
-        ["Fecha de Liquidación:", timezone.now().strftime("%d/%m/%Y")],
         ["Proveedor:", order.provider.name],
         ["Producto:", order.product.name],
         ["Cantidad Consignada:", f"{order.real_quantity} unidades"],
         ["Cantidad Vendida:", f"{order.sold_quantity} unidades"],
-        ["Total a Pagar:", f"Bs. {float(order.real_quantity * order.price_unit):.2f}"],
     ]
     
     if order.consignment_status == "CANCELLED":
         consignment_data.append(["Motivo de Cancelación:", order.cancelled_reason or "N/A"])
-    
+    else:
+        consignment_data.append(["Total a Pagar:", f"Bs. {float(order.real_quantity * order.price_unit):.2f}"])
+        
     consignment_table = Table(consignment_data, colWidths=[150, 300])
     consignment_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, -1), 'Helvetica', 10),
@@ -139,29 +140,29 @@ def generate_consignment_report(request, order_id):
     elements.append(consignment_table)
     elements.append(Paragraph("<br/><br/>", normal_style))
     
-    # Detalles de ventas
-    elements.append(Paragraph("Detalle de Ventas:", subtitle_style))
+    # # Detalles de ventas
+    # elements.append(Paragraph("Detalle de Ventas:", subtitle_style))
     
-    # Aquí deberías agregar los detalles específicos de las ventas
-    # Esto es un ejemplo, necesitarías obtener los datos reales de tu modelo
-    sales_data = [
-        ["Fecha", "Cantidad", "Precio Unitario", "Total"],
-        ["01/06/2023", "5", "Bs. 10.00", "Bs. 50.00"],
-        ["05/06/2023", "3", "Bs. 10.00", "Bs. 30.00"],
-        ["", "", "TOTAL:", "Bs. 80.00"],
-    ]
+    # # Aquí deberías agregar los detalles específicos de las ventas
+    # # Esto es un ejemplo, necesitarías obtener los datos reales de tu modelo
+    # sales_data = [
+    #     ["Fecha", "Cantidad", "Precio Unitario", "Total"],
+    #     ["01/06/2023", "5", "Bs. 10.00", "Bs. 50.00"],
+    #     ["05/06/2023", "3", "Bs. 10.00", "Bs. 30.00"],
+    #     ["", "", "TOTAL:", "Bs. 80.00"],
+    # ]
     
-    sales_table = Table(sales_data, colWidths=[120, 80, 100, 100])
-    sales_table.setStyle(TableStyle([
-        ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold', 10),
-        ('FONT', (0, 1), (-1, -1), 'Helvetica', 10),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-        ('BACKGROUND', (0, -1), (-2, -1), colors.lightgrey),
-    ]))
+    # sales_table = Table(sales_data, colWidths=[120, 80, 100, 100])
+    # sales_table.setStyle(TableStyle([
+    #     ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold', 10),
+    #     ('FONT', (0, 1), (-1, -1), 'Helvetica', 10),
+    #     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    #     ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
+    #     ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+    #     ('BACKGROUND', (0, -1), (-2, -1), colors.lightgrey),
+    # ]))
     
-    elements.append(sales_table)
+    # elements.append(sales_table)
     elements.append(Paragraph("<br/><br/>", normal_style))
     
     # Firmas

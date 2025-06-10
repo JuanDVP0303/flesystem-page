@@ -92,18 +92,16 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
             with transaction.atomic():
                 # Actualizar detalles de pago
                 for payment_data in payment_details:
-                    payment = PaymentDetail.objects.update_or_create(
+                    payment = PaymentDetail.objects.create(
                         buying_record=buying_record,
                         method=payment_data['method'],
-                        defaults={
-                            'amount': payment_data['amount'],
-                            'reference': payment_data.get('reference', ''),
-                        }
+                        amount= payment_data['amount'],
+                        reference= payment_data.get('reference', ''),
                     )
                     if 'proof' in payment_data:
                         #Hacer el save file del proof
-                        payment[0].proof = payment_data['proof']
-                        payment[0].save()
+                        payment.proof = payment_data['proof']
+                        payment.save()
                 
                 # Calcular total pagado
                 total_paid = buying_record.payment_details.aggregate(
@@ -114,6 +112,8 @@ class BuyingRecordsViewsets(viewsets.ModelViewSet):
 
                 if new_status == 'COMPLETED' and buying_record.status != 'COMPLETED':
                     if total_paid < buying_record.total_cost:
+                        buying_record.payment_details.all().delete()  # Eliminar detalles de pago si el pago no cubre el total
+                        
                         return Response({"error": "El pago no cubre el total del pedido"}, status=status.HTTP_400_BAD_REQUEST)
                     
                     for product_record in BuyingRecordsProducts.objects.filter(buying_record=buying_record):
