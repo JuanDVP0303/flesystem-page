@@ -396,7 +396,7 @@ const IncomeInventory = () => {
                 disableShowProduct={true}
                 required={true}
                 label="Nombre"
-                placeholder="Ej: Zapatos..."
+                placeholder="Ej: Flejes Plásticos..."
               />
               <FieldGroup
                 onChange={handleChange}
@@ -433,7 +433,7 @@ const IncomeInventory = () => {
                 label="Categoria"
                 disabled={formValues.disableFields}
                 name="category"
-                placeholder="Ej: Flejes Plásticos..."
+                placeholder="Ej: Plásticos"
               />
               <FieldGroup
                 onChange={handleChange}
@@ -608,7 +608,7 @@ const OutcomeInventory = () => {
                 // searchFunction={searchProductDebounce}
                 required={true}
                 label="Nombre"
-                placeholder="Ej: Zapatos..."
+                placeholder="Ej: Flejes Plásticos..."
               />
               <FieldGroup
                 onChange={handleChange}

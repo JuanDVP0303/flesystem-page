@@ -267,7 +267,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           // searchFunction={searchProductDebounce}
           required={true}
           label="Nombre"
-          placeholder="Ej: Zapatos..."
+          placeholder="Ej: Flejes Plásticos..."
         />
         <FieldGroup
           onChange={handleProductChange}
@@ -310,7 +310,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           disabled={!productEdited?.category}
           name="category"
           optional={true}
-          placeholder="Ej: Flejes Plásticos..."
+          placeholder="Ej: Plásticos..."
         />
 
     <FieldGroup
@@ -375,7 +375,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           // disabled={!productEdited?.safety_stock}
           name="name"
           optional={true}
-          placeholder="Ej: Flejes Plásticos..."
+          placeholder="Ej: Plásticos..."
         />
       </GridField> */}
       {/* <GridField> */}
