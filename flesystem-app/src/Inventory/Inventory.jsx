@@ -396,7 +396,7 @@ const IncomeInventory = () => {
                 disableShowProduct={true}
                 required={true}
                 label="Nombre"
-                placeholder="Ex:. Zapatos..."
+                placeholder="Ej: Zapatos..."
               />
               <FieldGroup
                 onChange={handleChange}
@@ -416,14 +416,14 @@ const IncomeInventory = () => {
                   numeric={true}
                   required={true}
                   name="min_stock"
-                  placeholder="Ex:. 20..."
+                  placeholder="Ej: 20..."
                 />
                <FieldGroup
                   onChange={handleChange}
                   value={formValues.description}
                   label="Descripción"
                   name="description"
-                  placeholder="Ex:. Producto de alta calidad..."
+                  placeholder="Ej: Producto de alta calidad..."
                 />
             </GridField>
             <GridField>
@@ -433,7 +433,7 @@ const IncomeInventory = () => {
                 label="Categoria"
                 disabled={formValues.disableFields}
                 name="category"
-                placeholder="Ex:. Vestimenta..."
+                placeholder="Ej: Flejes Plásticos..."
               />
               <FieldGroup
                 onChange={handleChange}
@@ -442,7 +442,7 @@ const IncomeInventory = () => {
                 required={true}
                 name="sell_price"
                 numeric={true}
-                placeholder="Ex:. 100.00"
+                placeholder="Ej: 100.00"
               />
                     <FieldGroup
                   onChange={handleChange}
@@ -451,7 +451,7 @@ const IncomeInventory = () => {
                   numeric={true}
                   required={true}
                   name="max_stock"
-                  placeholder="Ex:. 60..."
+                  placeholder="Ej: 60..."
                 />
               <FieldGroup
                 onChange={handleChange}
@@ -608,7 +608,7 @@ const OutcomeInventory = () => {
                 // searchFunction={searchProductDebounce}
                 required={true}
                 label="Nombre"
-                placeholder="Ex:. Zapatos..."
+                placeholder="Ej: Zapatos..."
               />
               <FieldGroup
                 onChange={handleChange}
@@ -617,7 +617,7 @@ const OutcomeInventory = () => {
                 required={true}
                 numeric={true}
                 name="quantity"
-                placeholder="Ex:. 10.00"
+                placeholder="Ej: 10.00"
               />
             </GridField>
             <GridField>
@@ -628,7 +628,7 @@ const OutcomeInventory = () => {
                 choices={formValues?.locations}
                 disabled={!formValues?.locations?.length > 0}
                 name="location"
-                placeholder="Ex:. Almacen A..."
+                placeholder="Ej: Almacen A..."
               />
                {formValues?.product && formValues?.product?.variants?.length > 0 && <FieldGroup
                 onChange={handleChange}
@@ -652,7 +652,7 @@ const OutcomeInventory = () => {
                 choices={office?.banks}
                 name="bank"
                 numeric={true}
-                placeholder="Ex:. 10.00"
+                placeholder="Ej: 10.00"
               /> */}
 
             </GridField>
@@ -666,7 +666,7 @@ const OutcomeInventory = () => {
                 label="Motivo"
                 name="motive"
                 multiline={true}
-                placeholder="Ex:. Venta...">
+                placeholder="Ej: Venta...">
             </FieldGroup>
 
             <h2 className="font-bold my-4 text-blue-400">
@@ -865,7 +865,7 @@ return <div className="flex items-center gap-0 w-full">
         defaultValue={moment(value) || null}
         disabled={disabled}
         maxDate={moment("2050-12-31")}
-        placeholder="Ex:. 2024-12-31"
+        placeholder="Ej: 2024-12-31"
       />
     </LocalizationProvider>
 
@@ -878,7 +878,7 @@ return <div className="flex items-center gap-0 w-full">
       label="Expiración"
       name="expiration"
       disabled={disabled}
-      placeholder="Ex:. 2024-12-31"
+      placeholder="Ej: 2024-12-31"
     />
   </div> */}
 </div>

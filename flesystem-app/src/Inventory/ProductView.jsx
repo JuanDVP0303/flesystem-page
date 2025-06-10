@@ -267,7 +267,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           // searchFunction={searchProductDebounce}
           required={true}
           label="Nombre"
-          placeholder="Ex:. Zapatos..."
+          placeholder="Ej: Zapatos..."
         />
         <FieldGroup
           onChange={handleProductChange}
@@ -277,7 +277,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           // required={true}
           // numeric={true}
           name="sku"
-          placeholder="Ex:. PRODUCTO"
+          placeholder="Ej: PRODUCTO"
         />
       </GridField>
        <GridField>
@@ -289,7 +289,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
             name="max_stock"
             optional={true}
             numeric={true}
-            placeholder="Ex:. 100..."
+            placeholder="Ej: 100..."
           />
           <FieldGroup
             onChange={handleProductChange}
@@ -299,7 +299,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
             // disabled={!productEdited?.min_stock}
             name="min_stock"
             optional={true}
-            placeholder="Ex:. 10..."
+            placeholder="Ej: 10..."
           />
        </GridField>
     </Grid>
@@ -310,7 +310,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           disabled={!productEdited?.category}
           name="category"
           optional={true}
-          placeholder="Ex:. Vestimenta..."
+          placeholder="Ej: Flejes Plásticos..."
         />
 
     <FieldGroup
@@ -346,7 +346,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           numeric={true}
           endAdornment={getProductQuantityByUnit(product, false, true)}
           label="Cantidad"
-          placeholder="Ex:. 20..."
+          placeholder="Ej: 20..."
         />
       </GridField>
       <GridField>
@@ -356,7 +356,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           value={formatNumber(productEdited?.price_unit * productEdited?.quantity)}
           label="Costo total"
           name="name"
-          placeholder="Ex:. 100"
+          placeholder="Ej: 100"
         />
         </GridField>
        {/* <FieldGroup
@@ -366,7 +366,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           // disabled={!productEdited?.category}
           name="price_unit"
           optional={true}
-          placeholder="Ex:. 20$..."
+          placeholder="Ej: 20$..."
         />
         <FieldGroup
           onChange={handleProductChange}
@@ -375,7 +375,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           // disabled={!productEdited?.safety_stock}
           name="name"
           optional={true}
-          placeholder="Ex:. Vestimenta..."
+          placeholder="Ej: Flejes Plásticos..."
         />
       </GridField> */}
       {/* <GridField> */}
@@ -385,7 +385,7 @@ export const EditModalForm = ({ handleProductChange, product, editProduct, setEd
           label={`Ubicación`}
           optional={true}
           name="location"
-          placeholder="Ex:. Almacén A"
+          placeholder="Ej: Almacén A"
         /> */}
       {/* </GridField> */}
       {/* <GridField>

@@ -383,7 +383,7 @@ const generateShortageReport = async (orderId) => {
                       <TextField
                         {...params}
                         // endAdornment={endAdornment}
-                        placeholder={"Ex:. Proveedor S.A."}
+                        placeholder={"Ej: Proveedor S.A."}
                         InputProps={{
                           ...params.InputProps,
                           name: "provider",
@@ -432,7 +432,7 @@ const generateShortageReport = async (orderId) => {
                 name="invoice_number"
                 optional={true}
                 label="Número de factura"
-                placeholder="Ex:. 001-123456"
+                placeholder="Ej: 001-123456"
               /> */}
             </GridField>
             <GridField>
@@ -445,7 +445,7 @@ const generateShortageReport = async (orderId) => {
                 numeric={true}
                 disabled={typeof purchasesModalType === "object"}
 
-                placeholder="Ex:. 100"
+                placeholder="Ej: 100"
               />
               <FieldGroup
                 onChange={handleChange}
@@ -456,7 +456,7 @@ const generateShortageReport = async (orderId) => {
                 numeric={true}
                 endAdornment={"Bs."}
                 disabled={typeof purchasesModalType === "object"}
-                placeholder="Ex:. 50.00"
+                placeholder="Ej: 50.00"
               />
             </GridField>
           </Grid>
@@ -505,7 +505,7 @@ const generateShortageReport = async (orderId) => {
                 maxNumber={formValues.quantity}
                 disabled={purchasesModalType.status != "PENDING"}
                 numeric={true}
-                placeholder="Ex:. 50.00"
+                placeholder="Ej: 50.00"
               />
               {/* {console.log("FORM VALUES", formValues)} */}
 
