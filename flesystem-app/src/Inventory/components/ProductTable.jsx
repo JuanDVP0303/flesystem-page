@@ -37,6 +37,12 @@ const ProductTable = ({products, isProvider}) => {
       toast.error("Por favor ingresa los días de crédito");
       proceed = false;
     }
+    //VAlidar que daysOfCredit sea entero
+    if (orderType === "CREDIT" && !Number.isInteger(daysOfCredit)) {
+      toast.error("Los días de crédito deben ser un número entero");
+      proceed = false;
+    }
+
     if (orderType === "CREDIT" && daysOfCredit >= 200) {
       toast.error("Los días de crédito no pueden ser mayores a 200");
       proceed = false;
@@ -169,7 +175,6 @@ const ProductTable = ({products, isProvider}) => {
               {orderType === "CREDIT" && (
                 <FieldGroup
                   onChange={(e) => {
-                    console.log("ASDSAD");
                     setDaysOfCredit(Number(e.target.value) || 0);
                   }}
                   value={daysOfCredit}

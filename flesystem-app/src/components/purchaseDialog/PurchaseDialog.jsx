@@ -73,6 +73,13 @@ const PurchaseDialog = ({
         proceed = false;
       }
   
+      //Validar que daysOfCredit sea un número entero
+      if (orderType === "CREDIT" && daysOfCredit && !Number.isInteger(daysOfCredit)) {
+        toast.error("Los días de crédito deben ser un número entero");
+        proceed = false;
+      }
+
+
       if (productQuantity > product.max_stock - product.total_quantity) {
         toast.error(
           "La cantidad no puede ser mayor al stock máximo del producto"
