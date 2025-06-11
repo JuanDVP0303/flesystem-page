@@ -40,6 +40,10 @@ export default function Products() {
   const [openUserBuyingRecords, setOpenUserBuyingRecords] = useState(false)
   const [showPreviousPurchaseProducts, setShowPreviousPurchaseProducts] = useState(false)
   useEffect(() => {
+    if(authenticatedUser?.kind_of_person == "operator"){
+          window.location.href = "/"
+          return
+        }
     getBuyingRecords()
   }, [])
 
